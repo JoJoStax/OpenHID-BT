@@ -1,53 +1,39 @@
-> [!WARNING]
-> **OpenLogi is under active development** and not yet stable — features and config may still change. Give the repo a **Star** ⭐ and **Watch** 👀 it to get notified when a new release lands.
-
-<h4 align="right"><strong>English</strong> | <a href="docs/README.zh-CN.md">简体中文</a> | <a href="docs/README.ja.md">日本語</a> | <a href="docs/README.de.md">Deutsch</a> | <a href="docs/README.fr.md">Français</a> | <a href="docs/README.ko.md">한국어</a> | <a href="docs/README.ru.md">Русский</a> | <a href="docs/README.es.md">Español</a> | <a href="docs/README.pt-BR.md">Português</a> | <a href="docs/README.tr.md">Türkçe</a></h4>
-
-<p align="center">
-    <img src="https://assets.openlogi.org/brand/openlogi-icon.png" width="138" alt="OpenLogi"/>
-</p>
-
-<h1 align="center">OpenLogi</h1>
-<p align="center"><strong>⚡️ A native, local-first alternative to Logitech Options+, written in Rust 🦀<br/>Unlock the full capabilities of Logitech mice, keyboards, and webcams over HID++ and UVC</strong></p>
+<h1 align="center">OpenHID/BT</h1>
+<p align="center"><strong>⚡️ Universal, local-first HID and Bluetooth peripheral management, written in Rust 🦀<br/>Combining multi-vendor hardware support into a fast, desktop-integrated native experience</strong></p>
 
 <div align="center">
-    <a href="https://twitter.com/AprilNEA" target="_blank">
-    <img alt="twitter" src="https://img.shields.io/badge/follow-AprilNEA-green?style=social&logo=Twitter"></a>
-    <a href="https://t.me/+VDtkR5OSAT04NzVh" target="_blank">
-    <img alt="telegram" src="https://img.shields.io/badge/chat-telegram-blueviolet?style=flat&logo=Telegram"></a>
-    <a href="https://github.com/AprilNEA/OpenLogi/releases" target="_blank">
-    <img alt="GitHub downloads" src="https://img.shields.io/github/downloads/AprilNEA/OpenLogi/total.svg?style=flat"></a>
-    <a href="https://github.com/AprilNEA/OpenLogi/commits" target="_blank">
-    <img alt="GitHub commit" src="https://img.shields.io/github/commit-activity/m/AprilNEA/OpenLogi?style=flat"></a>
-    <img alt="Hits" src="https://hits.aprilnea.com/hits?url=https://github.com/aprilnea/openlogi">
+    <a href="https://github.com/JoJoStax/OpenHID-BT/releases" target="_blank">
+    <img alt="GitHub downloads" src="https://img.shields.io/github/downloads/JoJoStax/OpenHID-BT/total.svg?style=flat"></a>
+    <a href="https://github.com/JoJoStax/OpenHID-BT/commits" target="_blank">
+    <img alt="GitHub commit" src="https://img.shields.io/github/commit-activity/m/JoJoStax/OpenHID-BT?style=flat"></a>
+    <img alt="Zero Monetization" src="https://img.shields.io/badge/Monetization-None%20(Forever%20Free)-success">
+    <img alt="Donations" src="https://img.shields.io/badge/Donations-No%20Donations%20Accepted-blue">
 </div>
-
-<p align="center">
-    <a href="https://trendshift.io/repositories/42303" target="_blank">
-    <img src="https://trendshift.io/api/badge/repositories/42303" alt="AprilNEA%2FOpenLogi | Trendshift" width="250" height="55"/></a>
-    <a href="https://www.producthunt.com/products/openlogi?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-openlogi" target="_blank" rel="noopener noreferrer">
-    <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=openlogi&amp;theme=dark&amp;period=daily">
-        <source media="(prefers-color-scheme: light)" srcset="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=openlogi&amp;theme=light&amp;period=daily">
-        <img alt="OpenLogi - A local-first alternative to Logitech Options+ | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=openlogi&amp;theme=light&amp;period=daily">
-    </picture></a>
-</p>
-
-> **Fed up with Options+? Try OpenLogi.**
-
-Runs on macOS, Linux, and Windows.
 
 ---
 
-## Beyond Options+
+### 🌟 Project Vision & Upstream Foundation
 
-Things OpenLogi does that Options+ won't:
+**OpenHID/BT** is a community-driven project built upon the incredible foundation of **[OpenLogi](https://github.com/AprilNEA/OpenLogi)** created by **[@AprilNEA](https://github.com/AprilNEA)**.
 
-- **Stay light.** Native Rust + GPUI.
-- **Run on Linux.** Linux is a first-class platform in OpenLogi.
-- **Gestures on supported buttons.** Assign gesture actions to supported controls — or turn gestures off entirely.
-- **Plain-text config.** Everything is one TOML file you can sync between machines however you like.
-- **Script it.** A real CLI alongside the GUI, with [hardware diagnostics](docs/USAGE.md) for DPI, pointer scaling, and SmartShift.
+- **Built on OpenLogi**: We use OpenLogi as our core base. As OpenLogi develops new features and improvements, we regularly pull and integrate upstream changes to keep our Logitech support top-tier.
+- **Expanding Beyond Logitech**: While OpenLogi focuses primarily on Logitech hardware, OpenHID/BT is structured to expand into a unified backend supporting peripherals from multiple manufacturers and open-source projects (Razer, Keychron, Sony, QMK/VIA, standard Bluetooth HID, and more).
+- **100% Free & No Monetization**: This project is and will remain strictly free and open-source. **There is zero monetization, no telemetry, no paid tiers, and no donations are accepted.** If you want to show support, please star the project and support the upstream creators!
+- **Desktop Environment Adaptability**: OpenHID/BT keeps OpenLogi's clean, modern visual design while adapting dynamically to Linux desktop environments (**KDE Plasma**, **GNOME**, **Hyprland**, etc.), matching your system's color schemes and accent colors automatically.
+- **Enhanced Device Support**: Includes fixes for modern gaming hardware such as the **Logitech G502 X Lightspeed** (Host Mode switching to prevent DPI resetting to 1800, `0x8110` Button Spy capture for DPI Up/Down/Shift and Profile Cycle remapping, and dedicated preview artwork).
+
+Runs on Linux, macOS, and Windows.
+
+---
+
+## Key Features
+
+- **Stay light.** Native Rust + GPUI — instant startup, minimal RAM usage.
+- **Adaptive Linux Theming.** Automatically matches colors and accents in KDE Plasma, GNOME, and Hyprland.
+- **Multi-Device & Vendor Extensible.** Modular architecture ready to integrate multiple peripheral driver families alongside Logitech HID++ and raw HID.
+- **Full G502 X Lightspeed Support.** Reliable button remapping for DPI Up, DPI Down, DPI Shift, and Profile Cycle with Host Mode lock.
+- **Plain-text config.** Everything is saved in one human-readable TOML file.
+- **Powerful CLI & Daemon.** High-performance background agent and command-line diagnostics alongside the GUI.
 
 ## Features
 
@@ -230,6 +216,7 @@ See [DEVELOPMENT.md](docs/DEVELOPMENT.md), including [macOS input-hook safety](d
 
 ## Acknowledgments
 
+- **[OpenLogi](https://github.com/AprilNEA/OpenLogi)** by [@AprilNEA](https://github.com/AprilNEA) — the foundational upstream project that makes this work possible
 - **Windows, cameras, and i18n** by [@davidbudnick](https://github.com/davidbudnick) — keyboard RGB, Windows support, Logitech webcam support
 - **Linux port** by [@cserby](https://github.com/cserby) — Linux support
 - [Solaar](https://github.com/pwr-Solaar/Solaar) by [@pwr](https://github.com/pwr) — open-source HID++ implementation
