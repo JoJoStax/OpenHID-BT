@@ -6,6 +6,7 @@ pub(crate) mod carousel;
 pub(crate) mod choice_card;
 pub(crate) mod commit_slider;
 pub(crate) mod components;
+pub mod de_theme;
 #[cfg(debug_assertions)]
 pub(crate) mod gallery;
 pub mod section;

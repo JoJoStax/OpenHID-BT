@@ -480,6 +480,7 @@ mod tests {
             border: gpui::hsla(0., 0., 0., 1.),
             text_primary,
             text_muted: gpui::hsla(0., 0., 0., 1.),
+            accent: gpui::hsla(0.55, 1., 0.45, 1.),
             card_radius: gpui::px(8.),
             control_radius: gpui::px(4.),
         };

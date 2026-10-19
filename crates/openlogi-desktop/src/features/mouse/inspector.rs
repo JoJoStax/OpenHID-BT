@@ -24,7 +24,7 @@ use crate::features::binding_editor::{
 use crate::state::AppState;
 use crate::ui::action::localized_action_label;
 use crate::ui::components::{MenuRow, Toggle, control_button, control_input, toggle_row};
-use crate::ui::theme::{self, ACCENT_BLUE, Palette, Typography as _};
+use crate::ui::theme::{self, Palette, Typography as _};
 
 pub(super) const INSPECTOR_W: f32 = 328.;
 
@@ -505,7 +505,7 @@ fn gesture_directions(
                             row.child(
                                 Icon::new(IconName::Check)
                                     .size_3()
-                                    .text_color(rgb(ACCENT_BLUE)),
+                                    .text_color(pal.accent),
                             )
                         })
                         .on_click(move |_, _, cx| {
@@ -598,7 +598,7 @@ fn thumbwheel_inspector(
                                     row.child(
                                         Icon::new(IconName::Check)
                                             .size_3()
-                                            .text_color(rgb(ACCENT_BLUE)),
+                                            .text_color(pal.accent),
                                     )
                                 })
                                 .on_click(move |_, _, cx| {
@@ -702,7 +702,7 @@ fn selection_card(
         .p_3()
         .cursor_pointer()
         .hover(move |card| card.bg(pal.control_hover))
-        .focus_visible(move |card| card.bg(pal.control_hover).border_color(rgb(ACCENT_BLUE)))
+        .focus_visible(move |card| card.bg(pal.control_hover).border_color(pal.accent))
         .child(
             div()
                 .text_caption()

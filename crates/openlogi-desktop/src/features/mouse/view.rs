@@ -5,7 +5,7 @@ use gpui::{
     AnyElement, App, AppContext as _, Context, ElementId, Entity, FocusHandle, Focusable, Hsla,
     InteractiveElement, IntoElement, ParentElement, Render, RenderOnce,
     StatefulInteractiveElement as _, Styled, Subscription, Window, canvas, div, hsla, img,
-    prelude::FluentBuilder as _, px, rgb,
+    prelude::FluentBuilder as _, px,
 };
 use gpui_base::Button as BaseButton;
 use gpui_component::{
@@ -30,7 +30,7 @@ use crate::app::{glow_canvas, keyboard_glow};
 use crate::features::profiles::{friendly_app_name, profile_canvas_status};
 use crate::services::assets::{GlowGeometry, ResolvedAsset};
 use crate::state::{AppState, DeviceKey, DeviceRecord, StateEvent};
-use crate::ui::theme::{self, ACCENT_BLUE};
+use crate::ui::theme;
 
 const SIDE_GAP: f32 = 24.;
 const LABEL_W: f32 = 156.;
@@ -575,7 +575,7 @@ fn leader_canvas(
 ) -> impl IntoElement {
     canvas(
         move |_bounds, _, _| (hotspots, labels, highlight),
-        move |bounds, payload, window, _app| {
+        move |bounds, payload, window, app| {
             let (hotspots, labels, highlight) = payload;
             paint_leader_lines(
                 bounds,
@@ -583,6 +583,7 @@ fn leader_canvas(
                     mouse_origin: gpui::point(px(mouse_left), px(0.)),
                     mouse_w,
                     card_edge_inset: CARD_EDGE_INSET,
+                    accent: theme::palette(app).accent,
                 },
                 &hotspots,
                 &labels,
@@ -752,13 +753,14 @@ struct HotspotTrigger {
 }
 
 impl RenderOnce for HotspotTrigger {
-    fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
+    fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let highlighted = self.hovered || self.selected;
         let selected = self.selected;
         let view = self.view;
         let click_view = view.clone();
         let hotspot = self.hotspot;
         let btn = hotspot.id;
+        let accent = theme::palette(cx).accent;
 
         BaseButton::new(self.id)
             .selected(selected)
@@ -779,21 +781,21 @@ impl RenderOnce for HotspotTrigger {
                     .rounded_full()
                     .border_1()
                     .border_color(if highlighted {
-                        gpui::Hsla::from(rgb(ACCENT_BLUE))
+                        accent
                     } else {
                         hsla(0., 0., 0.95, 0.85)
                     })
                     .bg(if highlighted {
-                        gpui::Hsla::from(rgb(ACCENT_BLUE))
+                        accent
                     } else {
                         hsla(0., 0., 0.18, 0.85)
                     }),
             )
-            .focus_visible(|style| {
+            .focus_visible(move |style| {
                 style
                     .rounded_full()
                     .border_2()
-                    .border_color(rgb(ACCENT_BLUE))
+                    .border_color(accent)
             })
             .on_click(move |_event, _window, cx| {
                 click_view.update(cx, |this, cx| {

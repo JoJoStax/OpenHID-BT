@@ -27,64 +27,79 @@ pub async fn enumerate_standalone(
     Ok(devices)
 }
 
+/// Classifier function that inspects a raw HID [`crate::backend::NodeInfo`] and returns a
+/// [`StandaloneDevice`] if it belongs to that driver family.
+pub type StandaloneClassifier = fn(&crate::backend::NodeInfo) -> Option<StandaloneDevice>;
+
+/// Registered standalone HID/BT device classifiers, evaluated in precedence order.
+///
+/// New peripheral driver families (e.g. third-party HID/Bluetooth mice, keyboards,
+/// audio devices, or lighting controllers) can be registered here without altering
+/// HID++ receiver or direct-device discovery.
+const STANDALONE_CLASSIFIERS: &[StandaloneClassifier] = &[classify_litra, classify_gaming_headset];
+
 /// Classifies one enumerated HID node against every standalone driver family
-/// OpenLogi recognizes, in precedence order. `None` when no family claims it.
+/// OpenHID/BT recognizes, in precedence order. `None` when no family claims it.
 fn standalone_device(device: &crate::backend::NodeInfo) -> Option<StandaloneDevice> {
-    if let Some(descriptor) = find_litra(
+    STANDALONE_CLASSIFIERS
+        .iter()
+        .find_map(|classify| classify(device))
+}
+
+fn classify_litra(device: &crate::backend::NodeInfo) -> Option<StandaloneDevice> {
+    let descriptor = find_litra(
         device.vendor_id,
         device.product_id,
         device.usage_page,
         device.usage_id,
-    ) {
-        return Some(StandaloneDevice {
-            address: RawDeviceAddress {
-                vendor_id: device.vendor_id,
-                product_id: device.product_id,
-                usage_page: device.usage_page,
-                usage_id: device.usage_id,
-                identity: device.identity(),
-            },
-            display_name: device.name.clone(),
-            manufacturer: device.manufacturer.clone(),
-            serial_number: device.serial_number.clone(),
-            unit_id: [0; 4],
-            kind: DeviceKind::Light,
-            online: true,
-            capabilities: None,
-            light_capabilities: Some(litra_capabilities(descriptor.model)),
-            driver_id: descriptor.driver_id.to_owned(),
-            registry_model_id: Some(descriptor.registry_model_id.to_owned()),
-        });
-    }
+    )?;
+    Some(StandaloneDevice {
+        address: RawDeviceAddress {
+            vendor_id: device.vendor_id,
+            product_id: device.product_id,
+            usage_page: device.usage_page,
+            usage_id: device.usage_id,
+            identity: device.identity(),
+        },
+        display_name: device.name.clone(),
+        manufacturer: device.manufacturer.clone(),
+        serial_number: device.serial_number.clone(),
+        unit_id: [0; 4],
+        kind: DeviceKind::Light,
+        online: true,
+        capabilities: None,
+        light_capabilities: Some(litra_capabilities(descriptor.model)),
+        driver_id: descriptor.driver_id.to_owned(),
+        registry_model_id: Some(descriptor.registry_model_id.to_owned()),
+    })
+}
 
-    if let Some(descriptor) = find_gaming_headset(
+fn classify_gaming_headset(device: &crate::backend::NodeInfo) -> Option<StandaloneDevice> {
+    let descriptor = find_gaming_headset(
         device.vendor_id,
         device.product_id,
         device.usage_page,
         device.usage_id,
-    ) {
-        return Some(StandaloneDevice {
-            address: RawDeviceAddress {
-                vendor_id: device.vendor_id,
-                product_id: device.product_id,
-                usage_page: device.usage_page,
-                usage_id: device.usage_id,
-                identity: device.identity(),
-            },
-            display_name: descriptor.name.to_owned(),
-            manufacturer: device.manufacturer.clone(),
-            serial_number: device.serial_number.clone(),
-            unit_id: [0; 4],
-            kind: DeviceKind::Headset,
-            online: true,
-            capabilities: None,
-            light_capabilities: None,
-            driver_id: GAMING_HEADSET_DRIVER_ID.to_owned(),
-            registry_model_id: Some(descriptor.registry_model_id.to_owned()),
-        });
-    }
-
-    None
+    )?;
+    Some(StandaloneDevice {
+        address: RawDeviceAddress {
+            vendor_id: device.vendor_id,
+            product_id: device.product_id,
+            usage_page: device.usage_page,
+            usage_id: device.usage_id,
+            identity: device.identity(),
+        },
+        display_name: descriptor.name.to_owned(),
+        manufacturer: device.manufacturer.clone(),
+        serial_number: device.serial_number.clone(),
+        unit_id: [0; 4],
+        kind: DeviceKind::Headset,
+        online: true,
+        capabilities: None,
+        light_capabilities: None,
+        driver_id: GAMING_HEADSET_DRIVER_ID.to_owned(),
+        registry_model_id: Some(descriptor.registry_model_id.to_owned()),
+    })
 }
 
 /// Reject multiple nodes that the route cannot distinguish safely.
@@ -95,7 +110,11 @@ fn standalone_device(device: &crate::backend::NodeInfo) -> Option<StandaloneDevi
 /// indistinguishable and must not be exposed as independently selectable
 /// devices.
 fn validate_no_ambiguous_nodes(devices: &[StandaloneDevice]) -> Result<(), InventoryError> {
-    let mut groups: HashMap<(u16, u16, u16, u16), Vec<&StandaloneDevice>> = HashMap::new();
+    if devices.len() < 2 {
+        return Ok(());
+    }
+    let mut groups: HashMap<(u16, u16, u16, u16), Vec<&StandaloneDevice>> =
+        HashMap::with_capacity(devices.len());
     for device in devices {
         let address = &device.address;
         groups

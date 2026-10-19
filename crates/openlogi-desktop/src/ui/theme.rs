@@ -132,6 +132,8 @@ pub struct Palette {
     pub text_primary: Hsla,
     /// De-emphasised labels / metadata.
     pub text_muted: Hsla,
+    /// Active theme's primary accent color (tracks KDE/GNOME/Hyprland/chosen theme).
+    pub accent: Hsla,
     /// Corner radius for the bespoke card / panel surfaces. Derived from the
     /// active gpui-component theme radius (`cx.theme().radius`) so the
     /// hand-painted cards follow the Appearance → radius slider — which the old
@@ -229,6 +231,7 @@ pub fn palette(cx: &App) -> Palette {
         border: t.border,
         text_primary: t.foreground,
         text_muted: t.muted_foreground,
+        accent: t.primary,
         card_radius: t.radius * 1.5,
         control_radius: t.radius,
     }
@@ -251,10 +254,15 @@ pub const OPENLOGI_DARK: &str = "OpenLogi Dark";
 
 /// Register every bundled theme into the [`ThemeRegistry`]. Call once at
 /// startup, after `gpui_component::init` (which seeds the registry global). Our
-/// brand theme loads first; the upstream themes follow.
+/// brand theme and desktop-environment themes load first; the upstream themes
+/// follow.
 pub fn register_builtin_themes(cx: &mut App) {
+    let de_json = super::de_theme::build_de_themes_json();
     let registry = ThemeRegistry::global_mut(cx);
-    for json in std::iter::once(OPENLOGI_THEME_JSON).chain(UPSTREAM_THEME_JSON.iter().copied()) {
+    for json in [OPENLOGI_THEME_JSON, de_json.as_str()]
+        .into_iter()
+        .chain(UPSTREAM_THEME_JSON.iter().copied())
+    {
         if let Err(error) = registry.load_themes_from_str(json) {
             tracing::warn!(%error, "failed to load a bundled theme");
         }
@@ -286,7 +294,7 @@ pub fn apply_ui_scale(window: &mut Window, cx: &App) {
 /// paint, OS-appearance changes, and live edits on the Appearance page:
 ///
 /// - the chosen named themes fill the light / dark slots (falling back to the
-///   OpenLogi brand theme);
+///   detected desktop environment theme or OpenLogi brand theme);
 /// - `System` follows the OS appearance, `Light` / `Dark` force it;
 /// - a chosen corner radius is applied last (after `Theme::change`, which would
 ///   otherwise reset it to the theme's own radius).
@@ -324,17 +332,21 @@ pub fn apply_from_settings(window: Option<&mut Window>, cx: &mut App) {
         .as_ref()
         .map_or_else(|| cx.window_appearance(), |w| w.appearance());
 
+    let (default_light, default_dark) =
+        super::de_theme::DesktopEnvironment::detect().default_theme_pair();
+
     // Pull the chosen configs out of the registry before borrowing the Theme
     // mutably (both live as globals).
     let (light, dark) = {
         let registry = ThemeRegistry::global(cx);
-        let pick = |name: Option<&str>, fallback: &str| {
+        let pick = |name: Option<&str>, de_fallback: &str, brand_fallback: &str| {
             name.and_then(|n| registry.themes().get(n).cloned())
-                .or_else(|| registry.themes().get(fallback).cloned())
+                .or_else(|| registry.themes().get(de_fallback).cloned())
+                .or_else(|| registry.themes().get(brand_fallback).cloned())
         };
         (
-            pick(light_name.as_deref(), OPENLOGI_LIGHT),
-            pick(dark_name.as_deref(), OPENLOGI_DARK),
+            pick(light_name.as_deref(), default_light, OPENLOGI_LIGHT),
+            pick(dark_name.as_deref(), default_dark, OPENLOGI_DARK),
         )
     };
     {
@@ -389,7 +401,7 @@ pub trait SelectableStyle: Styled + Sized {
     #[must_use]
     fn selected_border(self, selected: bool, pal: Palette) -> Self {
         self.border_1()
-            .border_color(if selected { accent() } else { pal.border })
+            .border_color(if selected { pal.accent } else { pal.border })
     }
 
     /// A faint accent fill when `selected`; leaves the background untouched

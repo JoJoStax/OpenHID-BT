@@ -7,7 +7,7 @@
 use gpui::{
     AnyElement, App, ClickEvent, ElementId, Entity, InteractiveElement, Interactivity, IntoElement,
     ParentElement, Pixels, RenderOnce, Role, SharedString, Stateful, StatefulInteractiveElement,
-    Styled, Window, div, prelude::FluentBuilder as _, px, rgb,
+    Styled, Window, div, prelude::FluentBuilder as _, px,
 };
 use gpui_base::Button as BaseButton;
 use gpui_component::{
@@ -22,7 +22,7 @@ use gpui_component::{
     v_flex,
 };
 
-use super::theme::{self, ACCENT_BLUE, SelectableStyle as _, Typography as _};
+use super::theme::{self, SelectableStyle as _, Typography as _};
 
 /// A gpui-component button at the house control height.
 ///
@@ -179,7 +179,7 @@ impl Sizable for Toggle {
 }
 
 impl RenderOnce for Toggle {
-    fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
+    fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let label = self.label.unwrap_or_else(|| {
             if self.selected {
                 tr!("common.on")
@@ -187,12 +187,13 @@ impl RenderOnce for Toggle {
                 tr!("common.off")
             }
         });
+        let accent = theme::palette(cx).accent;
         let mut toggle = Switch::new(self.id)
             .checked(self.selected)
             .disabled(self.disabled)
             .with_size(self.size)
             .label(label)
-            .color(rgb(ACCENT_BLUE));
+            .color(accent);
         if let Some(handler) = self.on_change {
             toggle = toggle.on_click(move |selected, window, cx| handler(selected, window, cx));
         }
@@ -487,7 +488,7 @@ impl StatefulInteractiveElement for ProfileTab {}
 impl RenderOnce for ProfileTab {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let pal = theme::palette(cx);
-        let accent = rgb(ACCENT_BLUE);
+        let accent = pal.accent;
         let has_delete = self.delete.is_some();
         let label = self.label;
         self.base
@@ -503,7 +504,7 @@ impl RenderOnce for ProfileTab {
             .rounded_full()
             .border_1()
             .border_color(if self.selected {
-                accent.into()
+                accent
             } else {
                 pal.border
             })

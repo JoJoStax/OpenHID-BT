@@ -64,7 +64,7 @@ fn about_hero(view: &Entity<SettingsView>, copied: bool, cx: &mut App) -> gpui::
                     h_flex()
                         .items_center()
                         .gap_2()
-                        .child(div().text_heading().child("OpenLogi"))
+                        .child(div().text_heading().child("OpenHID/BT"))
                         .child(
                             div()
                                 .text_body()

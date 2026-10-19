@@ -4,10 +4,9 @@
 //! label anchor. The control being interacted with gets a blue, thicker line;
 //! the other controls keep muted lines so their mapping remains visible.
 
-use gpui::{Bounds, PathBuilder, Pixels, Point, Window, hsla, point, px, rgb};
+use gpui::{Bounds, Hsla, PathBuilder, Pixels, Point, Window, hsla, point, px};
 
 use super::hotspots::{Hotspot, MouseControlId};
-use crate::ui::theme::ACCENT_BLUE;
 
 /// Length of the horizontal stub before turning toward the label.
 /// Kept small enough to fit inside the gap between mouse and card so
@@ -41,6 +40,7 @@ pub struct Geometry {
     pub mouse_origin: Point<Pixels>,
     pub mouse_w: f32,
     pub card_edge_inset: f32,
+    pub accent: Hsla,
 }
 
 /// Paint every leader line. Hotspot coords are mouse-local; label `y`
@@ -82,6 +82,7 @@ fn paint_one(
         mouse_origin: mouse_origin_local,
         mouse_w,
         card_edge_inset,
+        accent,
     } = geometry;
     // Mouse silhouette's top-left in window-absolute coords. Every other
     // coordinate is derived from this so we don't accidentally mix
@@ -121,7 +122,7 @@ fn paint_one(
 
     if let Ok(built) = path.build() {
         if highlight {
-            window.paint_path(built, rgb(ACCENT_BLUE));
+            window.paint_path(built, accent);
         } else {
             // Muted gray — readable against the dark background without
             // competing with the highlighted line.
