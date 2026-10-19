@@ -325,7 +325,16 @@ pub fn channel_pool() -> ChannelPool {
 
 /// Enumerate this host's recognized standalone devices.
 pub async fn enumerate_standalone() -> Result<Vec<StandaloneDevice>, InventoryError> {
-    openlogi_device::inventory::standalone::enumerate_standalone(&*native_backend()).await
+    let mut devices = openlogi_device::inventory::standalone::enumerate_standalone(&*native_backend()).await?;
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(qcy_devs) = openhid_qcy::transport::enumerate_bluez_qcy_devices().await {
+            for qcy in qcy_devs {
+                devices.push(openhid_qcy::device::standalone_device_from_qcy(&qcy));
+            }
+        }
+    }
+    Ok(devices)
 }
 
 /// Subscribe to this host's HID hotplug events.

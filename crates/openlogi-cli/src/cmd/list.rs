@@ -6,7 +6,7 @@ use std::{
 use anyhow::{Context, Result};
 use clap::Args;
 use openlogi_camera::Camera;
-use openlogi_core::device::{BatteryInfo, DeviceInventory, DeviceModelInfo, PairedDevice};
+use openlogi_core::device::{BatteryInfo, DeviceInventory, DeviceModelInfo, PairedDevice, StandaloneDevice};
 use openlogi_ipc::client::ConnectError;
 use openlogi_ipc::{AgentSnapshot, AgentStatus};
 
@@ -17,7 +17,7 @@ pub struct ListArgs {}
 /// from the failure status a real enumeration error produces.
 const NOTHING_FOUND: u8 = 2;
 
-/// Print every connected receiver, paired device and Logitech webcam.
+/// Print every connected receiver, paired device, standalone device, and webcam.
 ///
 /// Reads the running agent's inventory when one is reachable — the agent is
 /// the process that actually holds device permissions, so its answer is the
@@ -26,13 +26,13 @@ const NOTHING_FOUND: u8 = 2;
 /// agent responds; the provenance goes to stderr so scripts keep parsing
 /// stdout.
 ///
-/// Returns the `NOTHING_FOUND` status when neither a HID++ device nor a webcam
-/// is present, so scripts can tell "no hardware" apart from a failed
-/// enumeration.
+/// Returns the `NOTHING_FOUND` status when neither a HID++ device, standalone
+/// peripheral, nor a webcam is present, so scripts can tell "no hardware"
+/// apart from a failed enumeration.
 pub async fn run(_args: ListArgs) -> Result<ExitCode> {
-    let (inventories, agent_status) = if let Some(snapshot) = agent_snapshot().await {
+    let (inventories, standalone, agent_status) = if let Some(snapshot) = agent_snapshot().await {
         eprintln!("(inventory read from the running agent)");
-        (snapshot.inventory, Some(snapshot.status))
+        (snapshot.inventory, snapshot.standalone, Some(snapshot.status))
     } else {
         eprintln!(
             "(no agent reachable — reading hardware directly; macOS judges this \
@@ -41,12 +41,15 @@ pub async fn run(_args: ListArgs) -> Result<ExitCode> {
         let inventories = openlogi_hid::enumerate()
             .await
             .context("failed to enumerate HID++ devices")?;
-        (inventories, None)
+        let standalone = openlogi_hid::enumerate_standalone()
+            .await
+            .unwrap_or_default();
+        (inventories, standalone, None)
     };
     let cameras = openlogi_camera::enumerate_cameras();
 
-    if inventories.is_empty() && cameras.is_empty() {
-        println!("No Logitech HID++ devices or webcams found.");
+    if inventories.is_empty() && cameras.is_empty() && standalone.is_empty() {
+        println!("No OpenHID/BT devices or webcams found.");
         println!();
         print_empty_notes(agent_status.as_ref());
         return Ok(ExitCode::from(NOTHING_FOUND));
@@ -66,7 +69,30 @@ pub async fn run(_args: ListArgs) -> Result<ExitCode> {
         print_cameras(&cameras);
     }
 
+    if !standalone.is_empty() {
+        if !inventories.is_empty() || !cameras.is_empty() {
+            println!();
+        }
+        print_standalone(&standalone);
+    }
+
     Ok(ExitCode::SUCCESS)
+}
+
+fn print_standalone(devices: &[StandaloneDevice]) {
+    println!("Standalone & Bluetooth Devices:");
+    for dev in devices {
+        let status = if dev.online { "connected" } else { "paired (offline)" };
+        println!("  {} [{:?}]", dev.display_name, dev.kind);
+        println!("    Driver: {}", dev.driver_id);
+        if let Some(ref mfg) = dev.manufacturer {
+            println!("    Manufacturer: {mfg}");
+        }
+        if let Some(ref serial) = dev.serial_number {
+            println!("    Address: {serial}");
+        }
+        println!("    Status: {status}");
+    }
 }
 
 /// One agent snapshot, or `None` when the CLI should read hardware itself:

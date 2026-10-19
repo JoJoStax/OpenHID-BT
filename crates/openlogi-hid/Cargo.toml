@@ -26,6 +26,9 @@ serde_json.workspace = true
 atomic-write-file = { workspace = true }
 openlogi-device = { version = "0.8.14", path = "../openlogi-device" }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+openhid-qcy = { path = "../openhid-qcy", version = "0.8.14" }
+
 # Native Win32 HID report writes (windows_hid.rs) — a fallback for async-hid's
 # write path on Windows, plus the composite short/long endpoint handling in
 # transport.rs.

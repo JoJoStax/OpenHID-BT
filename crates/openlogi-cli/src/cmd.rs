@@ -11,13 +11,14 @@ pub mod diag;
 pub mod fixture;
 pub mod light;
 pub mod list;
+pub mod qcy;
 pub mod snapshot;
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
     /// Versioned JSON automation through the running agent (no hardware fallback).
     Api(api::ApiArgs),
-    /// List connected Logitech HID++ devices.
+    /// List connected Logitech HID++ and OpenHID/BT devices.
     List(list::ListArgs),
     /// Read or persistently set the keyboard backlight (HID++ 0x1982).
     Backlight(backlight::BacklightArgs),
@@ -37,6 +38,9 @@ pub enum Command {
     /// Inspect and control standalone Logitech lights.
     #[command(subcommand)]
     Light(light::LightCmd),
+    /// Inspect and control QCY Bluetooth devices (ANC, Game Mode).
+    #[command(subcommand)]
+    Qcy(qcy::QcyCmd),
 }
 
 impl Command {
@@ -58,6 +62,7 @@ impl Command {
             Self::Diag(cmd) => cmd.run().await?,
             Self::Fixture(cmd) => cmd.run().await?,
             Self::Light(cmd) => cmd.run().await?,
+            Self::Qcy(cmd) => return cmd.run().await,
         }
         Ok(ExitCode::SUCCESS)
     }

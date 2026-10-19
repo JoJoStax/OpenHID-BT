@@ -21,6 +21,9 @@ futures-lite = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+openhid-qcy = { path = "../openhid-qcy" }
+
 [lints]
 workspace = true
 

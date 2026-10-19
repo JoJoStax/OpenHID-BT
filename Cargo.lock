@@ -5475,6 +5475,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "openhid-qcy"
+version = "0.8.14"
+dependencies = [
+ "openlogi-core",
+ "serde",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+ "zbus",
+]
+
+[[package]]
 name = "openlogi"
 version = "0.8.14"
 dependencies = [
@@ -5529,6 +5541,7 @@ version = "0.8.14"
 dependencies = [
  "axwatch",
  "futures-lite",
+ "openhid-qcy",
  "openlogi-core",
  "openlogi-fixture",
  "openlogi-hid",
@@ -5600,6 +5613,7 @@ dependencies = [
  "atomic-write-file",
  "clap",
  "futures",
+ "openhid-qcy",
  "openlogi-assets",
  "openlogi-camera",
  "openlogi-core",
@@ -5732,6 +5746,7 @@ dependencies = [
  "futures-concurrency",
  "futures-lite",
  "objc2-io-kit",
+ "openhid-qcy",
  "openlogi-async-hid",
  "openlogi-core",
  "openlogi-device",
