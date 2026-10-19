@@ -142,6 +142,7 @@ pub(super) fn plan(job: Job, sh: &Shell, host: Host) -> Result<Plan> {
             [Step::new("cargo").args(["fmt", "--all", "--", "--check"])],
         )),
         Job::Typos => Ok(typos(job)),
+        Job::AstGrep => Ok(ast_grep(job)),
         Job::PublishClosure => Ok(Plan::run(
             job,
             [Step::new("cargo").args(["xtask", "release", "check-publish"])],
@@ -150,13 +151,14 @@ pub(super) fn plan(job: Job, sh: &Shell, host: Host) -> Result<Plan> {
         Job::Clippy => Ok(clippy(job, host)),
         Job::Msrv => msrv(job, sh, host),
         Job::Rustdoc => Ok(rustdoc(job)),
-        Job::TestsLinux => Ok(Plan::run(
+        Job::TestsLinux | Job::TestsWindows => Ok(Plan::run(
             job,
             [Step::new("cargo").args(["test", "--workspace", "--exclude", "openlogi-desktop"])],
         )),
         Job::TestsMacos => Ok(tests_macos(job)),
         Job::CargoDeny => Ok(cargo_deny(job)),
         Job::ClippyWindows => clippy_windows(job, sh, host),
+        Job::ClippyMacos => Ok(Plan::run(job, [Step::new("cargo").args(CLIPPY_ARGS)])),
         Job::Wasm => wasm(job, sh),
         Job::I18n => Ok(Plan::run(
             job,
@@ -180,6 +182,15 @@ fn typos(job: Job) -> Plan {
         job,
         [Step::new("typos").args(["--config", ".config/typos.toml", "."])],
     )
+}
+
+/// Scan the whole tree with the single-source-of-truth guards stored with their owners.
+/// Root `sgconfig.yml` registers the rule directories.
+fn ast_grep(job: Job) -> Plan {
+    if !command_exists("ast-grep") {
+        return Plan::skip(job, "needs ast-grep (included in the devenv shell)");
+    }
+    Plan::run(job, [Step::new("ast-grep").args(["scan"])])
 }
 
 /// shellcheck and shfmt over every tracked shell script.
@@ -222,7 +233,10 @@ fn clippy(job: Job, host: Host) -> Plan {
         Host::Windows => {
             plan.note("host Windows clippy; CI's 'clippy' job is ubuntu — also run clippy-windows")
         }
-        _ => plan.note(format!(
+        Host::Macos => plan.note(
+            "host macOS clippy, the same command as CI's 'clippy (macos)'. CI's 'clippy' job is ubuntu-latest and compiles linux cfg — this is not that job",
+        ),
+        Host::Other => plan.note(format!(
             "host {host} clippy. CI's 'clippy' job is ubuntu-latest and compiles linux cfg — this is not that job"
         )),
     }

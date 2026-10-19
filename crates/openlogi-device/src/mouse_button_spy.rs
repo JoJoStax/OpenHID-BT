@@ -12,13 +12,35 @@ use std::sync::Arc;
 use hidpp::{
     channel::HidppChannel,
     feature::{CreatableFeature, EmittingFeature, mouse_button_spy as hidpp_spy},
-    protocol::v20::Hidpp20Error,
+    protocol::v20::{self, Hidpp20Error},
 };
 
 pub use hidpp_spy::{MouseButtonIndex, MouseButtonMask, MouseButtonSpyEvent};
 
 /// `MouseButtonSpy` HID++ feature ID.
 pub const FEATURE_ID: u16 = 0x8110;
+
+/// Decode a channel message into a [`MouseButtonSpyEvent`] when it is the
+/// unsolicited `0x8110` event (function `0`) for `(device_index, feature_index)`.
+#[must_use]
+pub fn decode_event(
+    msg: &v20::Message,
+    device_index: u8,
+    feature_index: u8,
+) -> Option<MouseButtonSpyEvent> {
+    let header = msg.header();
+    if header.device_index != device_index
+        || header.feature_index != feature_index
+        || header.software_id.to_lo() != 0
+        || header.function_id.to_lo() != 0
+    {
+        return None;
+    }
+    let p = msg.extend_payload();
+    Some(MouseButtonSpyEvent::Buttons(MouseButtonMask::from_bits(
+        u16::from_be_bytes([p[0], p[1]]),
+    )))
+}
 
 /// `MouseButtonSpy` accessor bound to one device + resolved feature index.
 ///

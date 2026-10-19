@@ -144,7 +144,7 @@ pub fn spy_buttons_for_model(model_key: &str) -> Option<&'static [(u8, ButtonId)
 pub(super) struct ArmedSpy {
     pub(super) spy: MouseButtonSpy,
     pub(super) buttons: &'static [(u8, ButtonId)],
-    pub(super) events: async_channel::Receiver<MouseButtonSpyEvent>,
+    pub(super) _events: async_channel::Receiver<MouseButtonSpyEvent>,
 }
 
 /// Emit the down/up edges between two consecutive spy masks.

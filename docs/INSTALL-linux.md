@@ -13,6 +13,53 @@
   distros).
 - `systemd` + `udev` (standard on Ubuntu, Fedora, Arch, Debian, openSUSE, …).
 - GLIBC 2.35 or newer for the pre-built packages (Ubuntu 22.04 baseline).
+- `minisign`, installed through your distribution's package manager, for
+  authenticating release packages.
+
+## Install a release package
+
+Download the installer to a file over HTTPS, inspect it, and then run it. Do
+not use `curl | sh`:
+
+```sh
+curl --proto '=https' --proto-redir '=https' --tlsv1.2 \
+  --fail --location --silent --show-error \
+  --retry 3 --retry-connrefused \
+  --output openlogi-install.sh \
+  https://raw.githubusercontent.com/AprilNEA/OpenLogi/master/packaging/linux/install.sh
+less openlogi-install.sh
+sh openlogi-install.sh
+rm openlogi-install.sh
+```
+
+By default the script resolves the latest GitHub release, detects
+`x86_64`/`aarch64` and apt, dnf, yum, zypper, rpm, or pacman, then downloads
+the exact matching `.deb`, `.rpm`, or `.pkg.tar.zst`. It downloads that
+package's detached signature and authenticates it against the minisign public
+key embedded in the reviewed script. It also downloads the release's
+`SHA256SUMS`, extracts exactly one entry for the selected file, and verifies it
+before invoking only the package-manager command with `sudo`.
+nFPM's package scripts remain responsible for reloading udev and desktop/icon
+caches. Run the installer as your normal user; it refuses an invocation of the
+whole script through `sudo`.
+
+Useful options:
+
+```sh
+# Pin a release (an optional leading v is accepted):
+sh openlogi-install.sh --version "$VERSION"
+
+# Override detection, verify without installing, or leave the agent stopped:
+sh openlogi-install.sh --package-manager zypper
+sh openlogi-install.sh --dry-run
+sh openlogi-install.sh --no-start
+```
+
+The installer enables and starts `openlogi-agent.service` for the current user
+when systemd is available; failure to reach the user service manager does not
+roll back an otherwise successful package installation. Tagged releases with
+a complete Linux build also attach `install.sh`, `install.sh.minisig`, and a
+`SHA256SUMS` entry for manual verification.
 
 ## NixOS
 
@@ -57,6 +104,52 @@ For a build without installing the module:
 nix build github:AprilNEA/OpenLogi#openlogi
 ```
 
+## Flatpak
+
+Each release carries a `.flatpak` bundle for `amd64` and `arm64`, on the
+[releases page](https://github.com/AprilNEA/OpenLogi/releases/latest):
+
+```sh
+flatpak install --user ./openlogi-*.flatpak
+```
+
+It is a one-time install. There is no remote behind a bundle, so `flatpak
+update` has nothing to check and a new version means downloading the next one.
+
+> [!IMPORTANT]
+> A Flatpak cannot write to `/etc`, so the udev rules have to be installed on
+> the host separately. **Until you do, no devices are detected at all**: the
+> sandbox is allowed to reach `/dev/hidraw*`, `/dev/uinput` and
+> `/dev/input/event*`, but the kernel still refuses your user access to them,
+> so the app opens to an empty device list.
+
+The same rules the packages install ship inside the app, so this needs no
+checkout and no extra download:
+
+```sh
+flatpak run --command=cat org.openlogi.OpenLogi \
+  /app/share/openlogi/udev/70-openlogi.rules |
+  sudo tee /etc/udev/rules.d/70-openlogi.rules >/dev/null
+
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
+
+Nothing extra is needed for `/dev/uinput`: the rules create its node at boot
+with `static_node=uinput`, and opening it loads the module. See
+[Device access: udev rules](#device-access-udev-rules) for what the rules grant
+and how to verify them.
+
+The agent installs its input hook once at startup, so restart the app after
+granting access:
+
+```sh
+flatpak kill org.openlogi.OpenLogi
+```
+
+Then launch it again. There is no user service to enable — unlike the packages,
+the application launches its own agent.
+
 ## Build from source
 
 Pre-built `.deb` and `.rpm` packages are available on the
@@ -67,7 +160,8 @@ from source instead, use the stable Rust toolchain:
 ```sh
 git clone https://github.com/AprilNEA/OpenLogi
 cd OpenLogi
-cargo build --release -p openlogi -p openlogi-desktop -p openlogi-agent
+cargo build --release \
+  -p openlogi -p openlogi-desktop -p openlogi-overlay -p openlogi-agent
 ```
 
 Four production executables land in `target/release/`:
@@ -136,19 +230,23 @@ sudo usermod -aG input "$USER"
 # Re-login for the group change to take effect.
 ```
 
-## Install with the script
+## Install from source with the script
 
-The `packaging/linux/install.sh` script copies the binaries, udev rules,
-systemd unit, desktop entry, and icon to system paths, then reloads `udevadm`.
+From a repository checkout, `--from-source` copies the four local
+`target/release` binaries, udev rules, systemd unit, desktop entry, and icon to
+system paths, then reloads udev and desktop/icon caches. The script requests
+`sudo` only for system files and lifecycle commands; do not run the whole
+installer with `sudo`. `--prefix` applies only to this mode.
 
 ```sh
 # From the repo root, after building:
-sudo packaging/linux/install.sh
+packaging/linux/install.sh --from-source
 # Or to a custom prefix (e.g. /usr):
-packaging/linux/install.sh --prefix=/usr
+packaging/linux/install.sh --from-source --prefix=/usr
 ```
 
-To remove:
+To remove a source installation (release packages should be removed through
+their package manager):
 
 ```sh
 packaging/linux/uninstall.sh
@@ -163,9 +261,20 @@ show connected devices. Enable it for your user session:
 systemctl --user enable --now openlogi-agent.service
 ```
 
-Alternatively, toggle **Settings → General → Launch at login** in the GUI — it
-writes the unit to `~/.config/systemd/user/openlogi-agent.service`
-automatically.
+Alternatively, toggle **Settings → General → Launch at login** in the GUI. When
+a packaged unit is already installed it simply enables that one. Otherwise — a
+build from source, or an install under a custom prefix — it generates a unit at
+`~/.local/share/systemd/user/openlogi-agent.service` pointing at the running
+binary.
+
+Either way `~/.config/systemd/user/openlogi-agent.service` stays yours: systemd
+ranks it above both locations, so a unit you write there overrides whatever
+OpenLogi does. Use `systemctl --user edit openlogi-agent.service` for a drop-in
+that survives package upgrades.
+
+OpenLogi never overwrites or deletes a unit it did not generate, at either
+location, and it only turns off an autostart it turned on. Enabling the service
+yourself with the command above keeps working regardless of the GUI toggle.
 
 ## Verify the installation
 
@@ -176,6 +285,37 @@ openlogi list
 # Launch the GUI:
 openlogi-desktop
 ```
+
+## Hyprland and Omarchy
+
+When the agent runs inside a Hyprland session, native actions use the
+Hyprland/Omarchy-compatible commands below:
+
+| OpenLogi action | Linux behavior |
+|---|---|
+| `LaunchpadShow` | `omarchy-menu toggle` |
+| `PreviousDesktop` | `hyprctl dispatch workspace e-1` |
+| `NextDesktop` | `hyprctl dispatch workspace e+1` |
+| `LockScreen` | `omarchy-system-lock` |
+
+The lock action never sends `Super+L` on Hyprland because Omarchy uses that
+shortcut to change the workspace layout. If an Omarchy helper is unavailable
+or exits unsuccessfully, OpenLogi falls back to the corresponding compositor
+shortcut; the lock fallback is `Super+Ctrl+L`.
+
+The agent selects this behavior when `HYPRLAND_INSTANCE_SIGNATURE` is present.
+Because the agent normally runs as a systemd user service, verify that its
+manager environment contains both that variable and `XDG_RUNTIME_DIR`:
+
+```sh
+systemctl --user show-environment | \
+    grep -E '^(HYPRLAND_INSTANCE_SIGNATURE|XDG_RUNTIME_DIR)='
+```
+
+If either variable is missing, configure the session to import it into the
+systemd user manager before restarting `openlogi-agent.service`. The helper
+executables are resolved from `/usr/bin` and `/usr/local/bin`; missing helpers
+use the keyboard fallbacks above.
 
 ## Known limitations
 

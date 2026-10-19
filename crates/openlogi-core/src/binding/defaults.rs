@@ -48,8 +48,11 @@ pub fn default_binding(button: ButtonId) -> Action {
             reason = "see the left tilt above — same control pair, mirrored direction"
         )]
         ButtonId::WheelTiltRight => Action::HorizontalScrollRight,
-        ButtonId::Back => Action::BrowserBack,
-        ButtonId::Forward => Action::BrowserForward,
+        // Preserve native side-button events unless explicitly rebound.
+        // BrowserBack/BrowserForward are dispatched navigation actions: using
+        // them as seeds would make the capture plan skip their HID++ diversion.
+        ButtonId::Back => Action::MouseBack,
+        ButtonId::Forward => Action::MouseForward,
         ButtonId::DpiToggle => Action::CycleDpiPresets,
         #[expect(
             clippy::match_same_arms,
@@ -68,26 +71,15 @@ pub fn default_binding(button: ButtonId) -> Action {
         ButtonId::ThumbwheelScrollDown => Action::HorizontalScrollRight,
         ButtonId::GestureButton => Action::MissionControl,
         ButtonId::HapticPanel => Action::ShowActionsRing,
-        // Keyboard keys stay on their native firmware function until the user
-        // explicitly binds them; an unbound key is never diverted, so a
-        // `None` default keeps the projection total without capturing anything.
-        ButtonId::KeySearch
-        | ButtonId::KeyDictation
-        | ButtonId::KeyEmoji
-        | ButtonId::KeyScreenCapture
-        | ButtonId::KeyMicMute
-        | ButtonId::KeyPlayPause
-        | ButtonId::KeyMute
-        | ButtonId::KeyVolumeDown
-        | ButtonId::KeyVolumeUp => Action::None,
-        // Gaming buttons stay on their native on-device behavior (DPI
-        // shift/cycle) until the user explicitly binds them; an unbound one
-        // is never armed on the `0x8110` spy (see `capture_plan`), so a
-        // `None` default keeps the projection total without capturing
-        // anything — same reasoning as the keyboard arm above.
-        ButtonId::DpiShift | ButtonId::ProfileCycle | ButtonId::DpiUp | ButtonId::DpiDown => {
-            Action::None
-        }
+        // Keyboard keys and gaming buttons stay on their native firmware
+        // function until the user explicitly binds them; an unbound one is
+        // never diverted or armed on the `0x8110` spy, so a `None` default
+        // keeps the projection total without capturing anything.
+        ButtonId::DpiShift
+        | ButtonId::ProfileCycle
+        | ButtonId::DpiUp
+        | ButtonId::DpiDown
+        | ButtonId::Control(_) => Action::None,
     }
 }
 
