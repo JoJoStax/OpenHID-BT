@@ -3,7 +3,6 @@
 use openlogi_core::device::{DeviceKind, RawDeviceAddress, StandaloneDevice};
 use serde::{Deserialize, Serialize};
 
-use crate::protocol::catalog::detect_product_name;
 use crate::protocol::commands::AncMode;
 use crate::protocol::uuids::HELE_QCY_VENDOR_ID;
 use crate::transport::DiscoveredQcyDevice;
@@ -24,13 +23,13 @@ pub struct QcyDeviceState {
 /// Convert a discovered BlueZ QCY device into OpenHID/BT's `StandaloneDevice`.
 #[must_use]
 pub fn standalone_device_from_qcy(device: &DiscoveredQcyDevice) -> StandaloneDevice {
-    let display_name = detect_product_name(&device.name, None);
+    let display_name = device.model.marketing_name.to_string();
     let identity = format!("bt:{}", device.address);
 
     StandaloneDevice {
         address: RawDeviceAddress {
             vendor_id: HELE_QCY_VENDOR_ID,
-            product_id: 0,
+            product_id: device.model.product_ids.first().copied().unwrap_or(0),
             usage_page: 0,
             usage_id: 0,
             identity,
@@ -44,6 +43,6 @@ pub fn standalone_device_from_qcy(device: &DiscoveredQcyDevice) -> StandaloneDev
         capabilities: None,
         light_capabilities: None,
         driver_id: QCY_DRIVER_ID.to_string(),
-        registry_model_id: None,
+        registry_model_id: Some(device.model.model_id.to_string()),
     }
 }

@@ -5,7 +5,12 @@ use tracing::{info, warn};
 use zbus::Connection;
 use zbus::zvariant::{OwnedObjectPath, OwnedValue, Value};
 
-use crate::protocol::commands::{AncMode, build_anc_command, build_game_mode_command};
+use crate::protocol::catalog::{QcyModelDescriptor, resolve_model};
+use crate::protocol::commands::{
+    AncMode, build_anc_command, build_auto_power_off_command, build_custom_eq_command,
+    build_eq_preset_command, build_game_mode_command, build_ldac_command, build_multipoint_command,
+    build_prompt_volume_command,
+};
 use crate::protocol::uuids::{QCY_COMMAND_UUID, QCY_NOTIFICATION_UUID, QCY_SERVICE_UUID, is_qcy_name};
 
 /// Information about a discovered QCY Bluetooth device in BlueZ.
@@ -18,8 +23,20 @@ pub struct DiscoveredQcyDevice {
     pub connected: bool,
     pub paired: bool,
     pub battery_percentage: Option<u8>,
+    pub model: QcyModelDescriptor,
     pub command_char_path: Option<OwnedObjectPath>,
     pub notify_char_path: Option<OwnedObjectPath>,
+}
+
+fn parse_modalias_product_id(modalias: &str) -> Option<u16> {
+    if let Some(pos) = modalias.find('p') {
+        let hex_slice = &modalias[pos + 1..];
+        let hex_chars: String = hex_slice.chars().take(4).collect();
+        if hex_chars.len() == 4 {
+            return u16::from_str_radix(&hex_chars, 16).ok();
+        }
+    }
+    None
 }
 
 /// Enumerate all QCY devices currently known to BlueZ over system D-Bus.
@@ -117,6 +134,9 @@ pub async fn enumerate_bluez_qcy_devices() -> Result<Vec<DiscoveredQcyDevice>, z
                         Err(_) => None,
                     });
 
+                let product_id = parse_modalias_product_id(&modalias);
+                let model = resolve_model(&name, &alias, product_id);
+
                 qcy_devices.insert(
                     path.clone(),
                     DiscoveredQcyDevice {
@@ -127,6 +147,7 @@ pub async fn enumerate_bluez_qcy_devices() -> Result<Vec<DiscoveredQcyDevice>, z
                         connected,
                         paired,
                         battery_percentage,
+                        model,
                         command_char_path: None,
                         notify_char_path: None,
                     },
@@ -183,7 +204,11 @@ pub async fn send_qcy_packet(
     Ok(())
 }
 
-/// Client handle for interacting with a connected QCY device.
+/// Unified client handle for interacting with any connected QCY device.
+///
+/// Shares the single underlying GATT backend across all product families
+/// (H3S, H3, H4, MeloBuds, T13, etc.), gating commands against each model's
+/// declared hardware capabilities.
 #[derive(Clone)]
 pub struct BluezQcyClient {
     pub device: DiscoveredQcyDevice,
@@ -196,10 +221,15 @@ impl BluezQcyClient {
 
     /// Set Noise Cancellation / Transparency mode.
     pub async fn set_anc(&self, mode: AncMode) -> Result<(), zbus::Error> {
+        if !self.device.model.capabilities.has_anc {
+            warn!(model = %self.device.model.marketing_name, "ANC is not supported on this model");
+            return Ok(());
+        }
+
         if let Some(cmd_path) = &self.device.command_char_path {
             let packet = build_anc_command(mode);
             send_qcy_packet(cmd_path, &packet).await?;
-            info!(address = %self.device.address, ?mode, "sent QCY ANC mode");
+            info!(address = %self.device.address, model = %self.device.model.marketing_name, ?mode, "sent QCY ANC mode");
         } else {
             warn!(address = %self.device.address, "QCY command characteristic not available");
         }
@@ -208,12 +238,87 @@ impl BluezQcyClient {
 
     /// Set Game Mode (low latency).
     pub async fn set_game_mode(&self, enabled: bool) -> Result<(), zbus::Error> {
+        if !self.device.model.capabilities.has_game_mode {
+            warn!(model = %self.device.model.marketing_name, "Game mode is not supported on this model");
+            return Ok(());
+        }
+
         if let Some(cmd_path) = &self.device.command_char_path {
             let packet = build_game_mode_command(enabled);
             send_qcy_packet(cmd_path, &packet).await?;
-            info!(address = %self.device.address, enabled, "sent QCY game mode");
+            info!(address = %self.device.address, model = %self.device.model.marketing_name, enabled, "sent QCY game mode");
         } else {
             warn!(address = %self.device.address, "QCY command characteristic not available");
+        }
+        Ok(())
+    }
+
+    /// Set Multipoint (Dual-Device connection).
+    pub async fn set_multipoint(&self, enabled: bool) -> Result<(), zbus::Error> {
+        if !self.device.model.capabilities.has_multipoint {
+            warn!(model = %self.device.model.marketing_name, "Multipoint is not supported on this model");
+            return Ok(());
+        }
+
+        if let Some(cmd_path) = &self.device.command_char_path {
+            let packet = build_multipoint_command(enabled);
+            send_qcy_packet(cmd_path, &packet).await?;
+            info!(address = %self.device.address, model = %self.device.model.marketing_name, enabled, "sent QCY multipoint");
+        }
+        Ok(())
+    }
+
+    /// Set LDAC codec toggle.
+    pub async fn set_ldac(&self, enabled: bool) -> Result<(), zbus::Error> {
+        if !self.device.model.capabilities.has_ldac {
+            warn!(model = %self.device.model.marketing_name, "LDAC is not supported on this model");
+            return Ok(());
+        }
+
+        if let Some(cmd_path) = &self.device.command_char_path {
+            let packet = build_ldac_command(enabled);
+            send_qcy_packet(cmd_path, &packet).await?;
+            info!(address = %self.device.address, model = %self.device.model.marketing_name, enabled, "sent QCY LDAC");
+        }
+        Ok(())
+    }
+
+    /// Set Prompt Volume level (0..15).
+    pub async fn set_prompt_volume(&self, volume: u8) -> Result<(), zbus::Error> {
+        if let Some(cmd_path) = &self.device.command_char_path {
+            let packet = build_prompt_volume_command(volume);
+            send_qcy_packet(cmd_path, &packet).await?;
+            info!(address = %self.device.address, volume, "sent QCY prompt volume");
+        }
+        Ok(())
+    }
+
+    /// Set Auto Power-Off timer in minutes.
+    pub async fn set_auto_power_off(&self, minutes: u16) -> Result<(), zbus::Error> {
+        if let Some(cmd_path) = &self.device.command_char_path {
+            let packet = build_auto_power_off_command(minutes);
+            send_qcy_packet(cmd_path, &packet).await?;
+            info!(address = %self.device.address, minutes, "sent QCY auto power-off timer");
+        }
+        Ok(())
+    }
+
+    /// Select an Equalizer preset index.
+    pub async fn set_eq_preset(&self, preset_index: u8) -> Result<(), zbus::Error> {
+        if let Some(cmd_path) = &self.device.command_char_path {
+            let packet = build_eq_preset_command(preset_index);
+            send_qcy_packet(cmd_path, &packet).await?;
+            info!(address = %self.device.address, preset_index, "sent QCY EQ preset");
+        }
+        Ok(())
+    }
+
+    /// Set 10-band custom parametric Equalizer gains.
+    pub async fn set_custom_eq(&self, gains: &[f64], preset_index: u8) -> Result<(), zbus::Error> {
+        if let Some(cmd_path) = &self.device.command_char_path {
+            let packet = build_custom_eq_command(gains, preset_index);
+            send_qcy_packet(cmd_path, &packet).await?;
+            info!(address = %self.device.address, "sent QCY 10-band custom EQ");
         }
         Ok(())
     }

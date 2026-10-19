@@ -6,7 +6,10 @@ pub mod commands;
 pub mod packet;
 pub mod uuids;
 
-pub use advertisement::QcyAdvertisement;
+pub use catalog::{
+    QCY_MODEL_CATALOG, QcyCapabilities, QcyFormFactor, QcyModelDescriptor, detect_product_name,
+    resolve_model,
+};
 pub use commands::{AncMode, build_anc_command, build_game_mode_command, build_request_command};
 pub use packet::{QcyCommand, pack_command, parse_packet};
 pub use uuids::{
