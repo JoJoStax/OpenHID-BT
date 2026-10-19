@@ -127,6 +127,7 @@ impl ActionExecutor {
                 None
             }
             other => {
+                info!(action = %other.label(), "injecting action");
                 openlogi_inject::execute(other);
                 None
             }

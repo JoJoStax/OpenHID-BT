@@ -8,7 +8,7 @@ use std::time::Instant;
 use openlogi_core::binding::{Action, Binding, ButtonId, default_binding};
 use openlogi_core::config::ThumbwheelSensitivity;
 use openlogi_hid::CapturedInput;
-use tracing::debug;
+use tracing::{debug, info};
 
 use self::wheel::{ScrollScale, WheelAccumulators, WheelOutput, WheelRotation};
 use super::GestureOutputs;
@@ -178,9 +178,9 @@ impl InputDispatcher {
                     || plan.side_gesture_bindings.contains_key(&button);
                 let binding = (!is_gesture).then(|| plan.bindings.get(&button)).flatten();
                 if let Some(binding) = binding {
-                    debug!(key, ?button, action = %binding.click_action().label(), "HID++ button → binding");
+                    info!(key, ?button, action = %binding.click_action().label(), "HID++ button → binding");
                 } else {
-                    debug!(key, ?button, "HID++ button with no binding — ignored");
+                    info!(key, ?button, "HID++ button with no binding — ignored");
                 }
                 let press = self
                     .outputs
