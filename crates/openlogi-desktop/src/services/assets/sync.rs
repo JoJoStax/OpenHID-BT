@@ -149,6 +149,10 @@ fn sync_depot(
     entry: &DeviceEntry,
     ext: u8,
 ) -> Result<()> {
+    if entry.files.iter().all(|f| f.sha256.is_empty()) {
+        debug!(depot, "skipping network sync for builtin local depot");
+        return Ok(());
+    }
     let dir = http::safe_component_path(cache_root, depot, "asset depot")?;
     fs::create_dir_all(&dir).with_context(|| format!("create {}", dir.display()))?;
 

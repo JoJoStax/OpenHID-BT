@@ -12,12 +12,12 @@
 
 use std::path::Path;
 
-/// The OpenLogi GitHub repository.
-pub const REPO_URL: &str = "https://github.com/AprilNEA/OpenLogi";
+/// The OpenHID/BT GitHub repository.
+pub const REPO_URL: &str = "https://github.com/JoJoStax/OpenHID-BT";
 /// The README, used as the in-app "Help" link.
-pub const HELP_URL: &str = "https://github.com/AprilNEA/OpenLogi#readme";
+pub const HELP_URL: &str = "https://github.com/JoJoStax/OpenHID-BT#readme";
 /// The "latest release" page.
-pub const RELEASES_URL: &str = "https://github.com/AprilNEA/OpenLogi/releases/latest";
+pub const RELEASES_URL: &str = "https://github.com/JoJoStax/OpenHID-BT/releases/latest";
 
 /// The application identifier: the Wayland xdg-toplevel `app_id` (and X11
 /// `WM_CLASS`) the GUI advertises, the root of the macOS bundle-id family
@@ -68,7 +68,7 @@ pub fn dev_id(id: &str) -> String {
 
 /// The app's display name: the outer bundle's `CFBundleName` and
 /// `CFBundleDisplayName`, and the root the helpers' names are formed from.
-pub const APP_NAME: &str = "OpenLogi";
+pub const APP_NAME: &str = "OpenHID/BT";
 
 /// The GUI's executable, as cargo builds it and as the macOS bundle and the
 /// Linux packages ship it. The helpers' executables are [`Helper::executable`].

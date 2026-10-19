@@ -236,6 +236,12 @@ fn map_slot_name(name: &str) -> Option<MouseControlId> {
         | "SLOT_NAME_DPI_BUTTON"
         | "SLOT_NAME_PRECISION_MODE_BUTTON"
         | "SLOT_NAME_CHANGE_POINTER_SPEED" => Some(MouseControlId::Button(ButtonId::DpiToggle)),
+        "SLOT_NAME_DPI_UP" => Some(MouseControlId::Button(ButtonId::DpiUp)),
+        "SLOT_NAME_DPI_DOWN" => Some(MouseControlId::Button(ButtonId::DpiDown)),
+        "SLOT_NAME_DPI_SHIFT" => Some(MouseControlId::Button(ButtonId::DpiShift)),
+        "SLOT_NAME_PROFILE_CYCLE" | "SLOT_NAME_ONBOARD_PROFILE_CYCLE" => {
+            Some(MouseControlId::Button(ButtonId::ProfileCycle))
+        }
         "SLOT_NAME_THUMBWHEEL" => Some(MouseControlId::ThumbwheelRotation),
         "SLOT_NAME_GESTURE_BUTTON" => Some(MouseControlId::Button(ButtonId::GestureButton)),
         // The MX Master 4 Haptic Sense Panel. Logi names the slot after its
