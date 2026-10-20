@@ -7,15 +7,16 @@ license.workspace = true
 repository.workspace = true
 authors.workspace = true
 description = "GPUI-based desktop UI for OpenLogi."
-default-run = "openlogi-desktop"
+default-run = "openhid-desktop"
 # Distributed as a bundled app; Kit stays Git-pinned to embed its full themes.
 publish = false
 
 [[bin]]
-name = "openlogi-desktop"
+name = "openhid-desktop"
 path = "src/main.rs"
 
 [dependencies]
+openhid-qcy = { path = "../openhid-qcy" }
 appcatalog = "0.1.1"
 openlogi-core = { path = "../openlogi-core", features = ["logging", "worker"] }
 openlogi-ui = { path = "../openlogi-ui" }

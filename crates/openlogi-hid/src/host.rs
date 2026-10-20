@@ -329,8 +329,14 @@ pub async fn enumerate_standalone() -> Result<Vec<StandaloneDevice>, InventoryEr
     #[cfg(target_os = "linux")]
     {
         if let Ok(qcy_devs) = openhid_qcy::transport::enumerate_bluez_qcy_devices().await {
-            for qcy in qcy_devs {
-                devices.push(openhid_qcy::device::standalone_device_from_qcy(&qcy));
+            let has_online_for_model = |model_id: &str| {
+                qcy_devs.iter().any(|d| d.connected && d.model.model_id == model_id)
+            };
+            for qcy in &qcy_devs {
+                if !qcy.connected && has_online_for_model(qcy.model.model_id) {
+                    continue;
+                }
+                devices.push(openhid_qcy::device::standalone_device_from_qcy(qcy));
             }
         }
     }

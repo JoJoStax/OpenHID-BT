@@ -125,8 +125,8 @@ impl Helper {
     #[must_use]
     pub const fn display_name(self) -> &'static str {
         match self {
-            Self::Agent => "OpenLogi Agent",
-            Self::Overlay => "OpenLogi Overlay",
+            Self::Agent => "OpenHID/BT Agent",
+            Self::Overlay => "OpenHID/BT Overlay",
         }
     }
 
@@ -388,11 +388,11 @@ mod tests {
     fn helper_bundles_are_named_after_their_display_names() {
         assert_eq!(
             Helper::Agent.bundle_dir(),
-            "Contents/Library/LoginItems/OpenLogi Agent.app"
+            "Contents/Library/LoginItems/OpenHID/BT Agent.app"
         );
         assert_eq!(
             Helper::Overlay.dev_bundle_dir(),
-            "Contents/Library/LoginItems/OpenLogi Overlay Dev.app"
+            "Contents/Library/LoginItems/OpenHID/BT Overlay Dev.app"
         );
         // Bundles built before the helpers took their display names are
         // still found, after the current layouts.

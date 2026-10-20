@@ -61,6 +61,8 @@ pub(crate) enum StateEvent {
     EasySwitchChanged(DeviceKey),
     /// Device or standalone-light settings changed.
     LightingChanged(DeviceKey),
+    /// Audio / headset settings changed (ANC, game mode, multipoint, LDAC, etc).
+    AudioChanged(DeviceKey),
     /// Camera settings or activity changed.
     CameraChanged,
     /// Host camera-permission status may have changed.
@@ -95,6 +97,7 @@ impl StateEvent {
             | Self::BacklightChanged(key)
             | Self::EasySwitchChanged(key)
             | Self::LightingChanged(key)
+            | Self::AudioChanged(key)
             | Self::DeviceConfigChanged(key) => Some(key),
             Self::AgentChanged
             | Self::ForegroundChanged
@@ -244,6 +247,7 @@ impl AppState {
             | StateEvent::BacklightChanged(_)
             | StateEvent::EasySwitchChanged(_)
             | StateEvent::LightingChanged(_)
+            | StateEvent::AudioChanged(_)
             | StateEvent::CameraChanged
             | StateEvent::CameraPermissionChanged
             | StateEvent::DeviceConfigChanged(_)

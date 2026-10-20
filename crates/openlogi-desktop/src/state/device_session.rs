@@ -15,6 +15,32 @@ pub(crate) enum ObservedConnection {
     Receiver(ReceiverProtocol),
 }
 
+use openhid_qcy::protocol::commands::AncMode;
+
+/// Runtime state for audio/Bluetooth devices (e.g. QCY headphones/earbuds).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct AudioDeviceState {
+    pub(crate) anc_mode: AncMode,
+    pub(crate) game_mode: bool,
+    pub(crate) multipoint: bool,
+    pub(crate) ldac: bool,
+    pub(crate) prompt_volume: u8,
+    pub(crate) auto_power_off_minutes: u16,
+}
+
+impl Default for AudioDeviceState {
+    fn default() -> Self {
+        Self {
+            anc_mode: AncMode::Off,
+            game_mode: false,
+            multipoint: false,
+            ldac: false,
+            prompt_volume: 8,
+            auto_power_off_minutes: 0,
+        }
+    }
+}
+
 /// Everything `AppState` tracks per device outside persisted configuration and
 /// the swr-backed DPI/SmartShift reads: the per-device counterpart of
 /// [`AgentSession`](super::agent::AgentSession), gone with the process.
@@ -34,4 +60,5 @@ pub(super) struct DeviceSession {
     pub(super) inventory_misses: u8,
     pub(super) smartshift: SmartShiftDeviceState,
     pub(super) light: LightDeviceState,
+    pub(super) audio: AudioDeviceState,
 }

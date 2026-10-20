@@ -54,7 +54,7 @@ impl AuxWindow for UpdateConsentView {
 pub fn open(cx: &mut App) {
     windows::open_or_focus(
         |reg| &mut reg.update_consent,
-        "OpenLogi",
+        "OpenHID/BT",
         Size::new(px(380.), px(320.)),
         |window, cx| UpdateConsentView::new(crate::platform::updater::manifest_host(), window, cx),
         cx,

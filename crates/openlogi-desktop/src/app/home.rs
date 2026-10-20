@@ -603,6 +603,8 @@ fn connection_view(
             svg()
                 .path(if matches!(record.kind, DeviceKind::Camera) {
                     "action-icons/usb.svg"
+                } else if record.driver_id.as_deref() == Some("qcy") {
+                    "action-icons/bluetooth.svg"
                 } else {
                     connection_icon_path(
                         record.route.as_ref(),

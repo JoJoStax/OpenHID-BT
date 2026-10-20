@@ -136,6 +136,9 @@ pub(super) fn receiver_slot_label(record: &DeviceRecord) -> Option<SharedString>
 /// How a device is reached, in words: the transport, plus the receiver slot
 /// when there is one ("Bolt receiver · Slot 4").
 pub(super) fn connection_summary(record: &DeviceRecord) -> String {
+    if record.driver_id.as_deref() == Some("qcy") {
+        return tr!("device.bluetooth").to_string();
+    }
     let route = route_label(record.route.as_ref());
     match receiver_slot_label(record) {
         Some(slot) => format!("{route} · {slot}"),

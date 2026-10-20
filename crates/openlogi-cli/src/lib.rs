@@ -1,4 +1,4 @@
-//! OpenLogi CLI implementation. The `openlogi` binary is a thin wrapper that
+//! OpenHID/BT CLI implementation. The `openhid` binary is a thin wrapper that
 //! calls [`run`]; the command tree and argument parsing live here.
 
 use std::process::ExitCode;
@@ -9,12 +9,13 @@ use clap::Parser;
 mod agent;
 mod cmd;
 
-/// OpenLogi: a local-first companion for Logitech HID++ peripherals.
+/// OpenHID/BT: a local-first companion for Logitech HID++ and Bluetooth peripherals.
 #[derive(Debug, Parser)]
 #[command(
-    name = "openlogi",
+    name = "openhid",
+    bin_name = "openhid",
     version,
-    about = "OpenLogi: a local-first companion for Logitech HID++ peripherals.",
+    about = "OpenHID/BT: a local-first companion for Logitech HID++ and Bluetooth peripherals.",
     long_about = None,
 )]
 struct Cli {

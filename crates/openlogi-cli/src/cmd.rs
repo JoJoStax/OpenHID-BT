@@ -26,7 +26,7 @@ pub enum Command {
     Snapshot(snapshot::SnapshotArgs),
     /// Read or write device-level UVC image controls on a webcam.
     Camera(camera::CameraArgs),
-    /// Manage assets fetched from OpenLogi's asset mirrors.
+    /// Manage assets fetched from OpenHID/BT asset mirrors.
     #[command(subcommand)]
     Assets(assets::AssetsCmd),
     /// Real-device round-trip smoke tests against the HID++ write path.

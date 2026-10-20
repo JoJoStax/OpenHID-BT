@@ -473,6 +473,23 @@ fn append_standalone(
     config: &Config,
 ) {
     for device in devices {
+        // Skip duplicate offline standalone entries when an online device of that model is present,
+        // or if an entry for that model has already been added to the list.
+        if !device.online
+            && (devices.iter().any(|other| {
+                other.online
+                    && other.driver_id == device.driver_id
+                    && (other.registry_model_id == device.registry_model_id
+                        || other.display_name == device.display_name)
+            }) || list.iter().any(|rec| {
+                rec.driver_id.as_deref() == Some(&device.driver_id)
+                    && (rec.registry_model_id == device.registry_model_id
+                        || rec.display_name == device.display_name)
+            }))
+        {
+            continue;
+        }
+
         let route = Some(device.route());
         let stable_id = DeviceStableId::from_parts(
             route.as_ref(),

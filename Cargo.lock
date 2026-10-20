@@ -5475,6 +5475,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "openhid"
+version = "0.8.14"
+dependencies = [
+ "anyhow",
+ "openlogi-cli",
+ "tokio",
+]
+
+[[package]]
 name = "openhid-qcy"
 version = "0.8.14"
 dependencies = [
@@ -5484,15 +5493,6 @@ dependencies = [
  "tokio",
  "tracing",
  "zbus",
-]
-
-[[package]]
-name = "openlogi"
-version = "0.8.14"
-dependencies = [
- "anyhow",
- "openlogi-cli",
- "tokio",
 ]
 
 [[package]]
@@ -5679,6 +5679,7 @@ dependencies = [
  "objc2-foundation 0.3.2",
  "objc2-service-management",
  "opener",
+ "openhid-qcy",
  "openlogi-assets",
  "openlogi-camera",
  "openlogi-core",

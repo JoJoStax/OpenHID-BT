@@ -1,15 +1,19 @@
 [package]
-name = "openlogi"
+name = "openhid"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
-description = "OpenLogi command-line interface — a local-first companion for Logitech HID++ peripherals."
-keywords = ["logitech", "hidpp", "hid", "mouse", "cli"]
+description = "OpenHID/BT command-line interface — universal, local-first companion for Logitech HID++ and Bluetooth peripherals."
+keywords = ["logitech", "hidpp", "hid", "bluetooth", "qcy", "cli"]
 categories = ["command-line-utilities", "hardware-support"]
 readme = "../../README.md"
+
+[[bin]]
+name = "openhid"
+path = "src/main.rs"
 
 [dependencies]
 openlogi-cli = { path = "../openlogi-cli", version = "0.8.14" }

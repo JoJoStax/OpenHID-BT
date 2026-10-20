@@ -22,6 +22,7 @@ use super::widgets::{back_button, connection_summary, kind_label, sidebar_action
 use super::{AppView, DetailTab};
 use crate::app::menu::open_config_folder;
 use crate::features::action_ring::ActionRingPanel;
+use crate::features::audio::AudioPanel;
 use crate::features::camera::controls::CameraControlsPanel;
 use crate::features::camera::preview::CameraPreview;
 use crate::features::keyboard::function_row::FunctionRowView;
@@ -100,6 +101,7 @@ pub(super) struct DetailPanels<'a> {
     pub camera_preview: &'a gpui::Entity<CameraPreview>,
     pub camera_controls: &'a gpui::Entity<CameraControlsPanel>,
     pub light_panel: &'a gpui::Entity<LightPanel>,
+    pub audio_panel: &'a gpui::Entity<AudioPanel>,
 }
 
 /// The device-detail workspace below the identity bar: stable navigation rail
@@ -133,6 +135,7 @@ pub(super) fn detail_content(
             camera_tab(panels.camera_preview, panels.camera_controls).into_any_element()
         }
         DetailTab::Light => light_tab(panels.light_panel, cx).into_any_element(),
+        DetailTab::Audio => audio_tab(panels.audio_panel, cx).into_any_element(),
         DetailTab::Device => device_tab(cx).into_any_element(),
     };
     let navigation = detail_navigation(tabs, active, cx);
@@ -247,6 +250,7 @@ fn detail_tab_icon(tab: DetailTab) -> &'static str {
         DetailTab::Pointer => "action-icons/gauge.svg",
         DetailTab::Lighting | DetailTab::Light => "action-icons/palette.svg",
         DetailTab::Camera => "action-icons/camera.svg",
+        DetailTab::Audio => "action-icons/volume-2.svg",
         DetailTab::Device => "action-icons/settings.svg",
     }
 }
@@ -671,6 +675,19 @@ fn light_tab(
                         light_panel.clone().into_any_element(),
                     )),
             ),
+    )
+}
+
+/// Headset / Bluetooth audio controls tab.
+fn audio_tab(
+    audio_panel: &gpui::Entity<AudioPanel>,
+    _cx: &mut Context<AppView>,
+) -> impl IntoElement {
+    tab_body(
+        ContentWidth::Medium,
+        v_flex()
+            .w_full()
+            .child(audio_panel.clone().into_any_element()),
     )
 }
 
