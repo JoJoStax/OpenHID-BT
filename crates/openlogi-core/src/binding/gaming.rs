@@ -71,7 +71,7 @@ pub struct GamingLayout {
 /// `g502_wireless` depot gives all three ids one default configuration of 11
 /// inputs, and the same hotspot metadata to `1` and `2` (#2375).
 pub const G502_LIGHTSPEED: GamingLayout = GamingLayout {
-    model_keys: &["0407f", "1407f", "2407f"],
+    model_keys: &["0407f", "1407f", "2407f", "0409f", "1409f", "2409f"],
     slots: &[
         Slot::native(ButtonId::LeftClick),
         Slot::native(ButtonId::RightClick),
@@ -237,10 +237,13 @@ mod tests {
         );
         assert_eq!(
             GamingButtons::for_device("0409f", Some(&gaming)),
-            Some(GamingButtons::Standard)
+            Some(GamingButtons::Dumped(&G502_LIGHTSPEED))
         );
         assert_eq!(GamingButtons::Standard.layout(), &STANDARD_BUTTONS);
-        assert_eq!(GamingButtons::for_device("0409f", None), None);
+        assert_eq!(
+            GamingButtons::for_device("0409f", None),
+            Some(GamingButtons::Dumped(&G502_LIGHTSPEED))
+        );
         assert_eq!(GamingButtons::for_device("2b042", Some(&mx)), None);
     }
 

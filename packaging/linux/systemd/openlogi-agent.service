@@ -11,12 +11,12 @@
 #   systemctl --user enable --now openlogi-agent.service
 
 [Unit]
-Description=OpenLogi background agent (Logitech HID++ device control)
+Description=OpenHID/BT background agent (Logitech HID++ & Bluetooth peripheral control)
 After=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/openlogi-agent
+ExecStart=%h/.local/bin/openhid-agent
 Restart=on-failure
 RestartSec=5
 

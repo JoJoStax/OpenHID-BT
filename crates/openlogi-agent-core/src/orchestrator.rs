@@ -1438,6 +1438,9 @@ impl Orchestrator {
         if !dev.online {
             return None;
         }
+        if matches!(dev.kind, DeviceKind::Headset | DeviceKind::Camera | DeviceKind::Light) {
+            return None;
+        }
         let route = dev.route.clone()?;
         let identity = DeviceIdentity::from_parts(dev.serial.as_deref(), dev.unit_id);
         let physical_key = canonical_device_key(&stable_id(dev), Some(&identity))

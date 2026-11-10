@@ -1,17 +1,17 @@
 [package]
-name = "openlogi-agent"
+name = "openhid-agent"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
-description = "OpenLogi background agent — headless, always-on owner of the input hook, HID++ device I/O, and (later) the menu-bar tray."
+description = "OpenHID/BT background agent — headless, always-on owner of the input hook, HID++ device I/O, and menu-bar tray."
 # Distributed as a login-item helper inside the bundled .app; never published.
 publish = false
 
 [[bin]]
-name = "openlogi-agent"
+name = "openhid-agent"
 path = "src/main.rs"
 
 # Hardware-free mock agent for GUI development: serves a scripted inventory over

@@ -130,7 +130,51 @@ impl DeviceEntry {
 impl Index {
     /// Load and parse an `index.json` from disk.
     pub fn load_from(path: &Path) -> Result<Self, AssetError> {
-        http::load_json(path)
+        let mut index: Self = http::load_json(path)?;
+        index.inject_builtin_entries();
+        Ok(index)
+    }
+
+    /// Ensure built-in device depots are always present in the index even when
+    /// the remote upstream index.json has not incorporated them yet.
+    pub fn inject_builtin_entries(&mut self) {
+        self.devices
+            .entry("g502x_lightspeed".to_string())
+            .or_insert_with(|| DeviceEntry {
+                model_id: "409f".to_string(),
+                model_ids: vec![
+                    "409f".to_string(),
+                    "c09d".to_string(),
+                    "1409f".to_string(),
+                    "2409f".to_string(),
+                    "0409f".to_string(),
+                ],
+                display_name: "G502 X LIGHTSPEED".to_string(),
+                kind: "MOUSE".to_string(),
+                asset_path: "v1/devices/g502x_lightspeed/".to_string(),
+                files: vec![
+                    FileEntry {
+                        name: "front.png".to_string(),
+                        sha256: String::new(),
+                        bytes: 0,
+                    },
+                    FileEntry {
+                        name: "side.png".to_string(),
+                        sha256: String::new(),
+                        bytes: 0,
+                    },
+                    FileEntry {
+                        name: "core_metadata.json".to_string(),
+                        sha256: String::new(),
+                        bytes: 0,
+                    },
+                    FileEntry {
+                        name: "manifest.json".to_string(),
+                        sha256: String::new(),
+                        bytes: 0,
+                    },
+                ],
+            });
     }
 
     /// Find the depot one of whose model ids matches `model_id` exactly.

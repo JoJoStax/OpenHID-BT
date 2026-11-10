@@ -371,6 +371,8 @@ pub const OPENLOGI_DARK: &str = "OpenLogi Dark";
 /// brand theme loads first; the upstream themes follow.
 pub fn register_builtin_themes(cx: &mut App) {
     let registry = ThemeRegistry::global_mut(cx);
+    let de_json = crate::ui::de_theme::build_de_themes_json();
+    let _ = registry.load_themes_from_str(&de_json);
     for json in std::iter::once(OPENLOGI_THEME_JSON).chain(UPSTREAM_THEME_JSON.iter().copied()) {
         if let Err(error) = registry.load_themes_from_str(json) {
             tracing::warn!(%error, "failed to load a bundled theme");

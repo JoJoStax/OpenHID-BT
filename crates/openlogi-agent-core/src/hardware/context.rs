@@ -104,7 +104,22 @@ impl HardwareContext {
     pub(crate) async fn enumerate_standalone(
         &self,
     ) -> Result<Vec<StandaloneDevice>, InventoryError> {
-        openlogi_hid::inventory::standalone::enumerate_standalone(&*self.backend).await
+        let mut devices = openlogi_hid::inventory::standalone::enumerate_standalone(&*self.backend).await?;
+        #[cfg(target_os = "linux")]
+        {
+            if let Ok(qcy_devs) = openhid_qcy::transport::enumerate_bluez_qcy_devices().await {
+                let has_online_for_model = |model_id: &str| {
+                    qcy_devs.iter().any(|d| d.connected && d.model.model_id == model_id)
+                };
+                for qcy in &qcy_devs {
+                    if !qcy.connected && has_online_for_model(qcy.model.model_id) {
+                        continue;
+                    }
+                    devices.push(openhid_qcy::device::standalone_device_from_qcy(qcy));
+                }
+            }
+        }
+        Ok(devices)
     }
 
     pub(crate) async fn run_pairing(

@@ -690,6 +690,13 @@ impl FromStr for ButtonId {
         ButtonId::UNIT_NAMES
             .into_iter()
             .find_map(|(button, unit_name)| (unit_name == name).then_some(button))
+            .or_else(|| match name {
+                "DpiShift" | "Sniper" => Some(ButtonId::G6),
+                "DpiDown" => Some(ButtonId::G7),
+                "DpiUp" => Some(ButtonId::G8),
+                "ProfileCycle" => Some(ButtonId::G9),
+                _ => None,
+            })
             .or_else(|| GridSlot::from_config_name(name).map(Self::Grid))
             .or_else(|| GKeySlot::from_config_name(name).map(Self::GKey))
             .or_else(|| ModeKey::from_config_name(name).map(Self::ModeKey))

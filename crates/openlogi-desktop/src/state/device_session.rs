@@ -35,4 +35,28 @@ pub(super) struct DeviceSession {
     pub(super) smartshift: SmartShiftDeviceState,
     pub(super) light: LightDeviceState,
     pub(super) disable_keys: DisableKeysDeviceState,
+    pub(super) audio: AudioDeviceState,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct AudioDeviceState {
+    pub(crate) anc_mode: openhid_qcy::protocol::commands::AncMode,
+    pub(crate) game_mode: bool,
+    pub(crate) ldac: bool,
+    pub(crate) multipoint: bool,
+    pub(crate) prompt_volume: u8,
+    pub(crate) auto_power_off_minutes: u16,
+}
+
+impl Default for AudioDeviceState {
+    fn default() -> Self {
+        Self {
+            anc_mode: openhid_qcy::protocol::commands::AncMode::Off,
+            game_mode: false,
+            ldac: false,
+            multipoint: false,
+            prompt_volume: 8,
+            auto_power_off_minutes: 0,
+        }
+    }
 }

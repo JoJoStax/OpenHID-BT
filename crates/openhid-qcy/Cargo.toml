@@ -1,0 +1,22 @@
+[package]
+name = "openhid-qcy"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "QCY Bluetooth headset and earbud protocol and backend driver for OpenHID/BT"
+
+[dependencies]
+openlogi-core = { path = "../openlogi-core", default-features = false }
+serde = { workspace = true, features = ["derive"] }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true, features = ["sync", "time", "rt"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+zbus = "5"
+
+[lints]
+workspace = true

@@ -188,7 +188,7 @@ impl DetailTab {
         if record.light_capabilities.is_some() {
             tabs.push(Self::Light);
         }
-        if caps.sidetone {
+        if caps.sidetone || matches!(record.kind, DeviceKind::Headset) || record.driver_id.as_deref() == Some("openhid-qcy") {
             tabs.push(Self::Audio);
         }
         tabs.push(Self::Device);
@@ -411,6 +411,7 @@ impl AppView {
             | StateEvent::ReportRateChanged(_)
             | StateEvent::PointerSpeedChanged(_)
             | StateEvent::SidetoneChanged(_)
+            | StateEvent::AudioChanged(_)
             | StateEvent::ForceSensingChanged(_)
             | StateEvent::DeviceRemovalFailed { .. }
             | StateEvent::StalePairingRemovalFailed { .. }
@@ -585,7 +586,7 @@ fn app_title_bar(cx: &App) -> impl IntoElement {
             .justify_center()
             .text_body()
             .text_color(pal.text_muted)
-            .child("OpenLogi"),
+            .child("OpenHID/BT"),
     )
 }
 
@@ -627,7 +628,7 @@ impl AppView {
             .map(gpui::SharedString::from);
         self.config_issue_visible = config_issue.is_some();
         if let Some(issue) = config_issue {
-            window.set_window_title("OpenLogi");
+            window.set_window_title("OpenHID/BT");
             return root
                 .child(status::config_issue_body(issue, cx))
                 .into_any_element();
@@ -648,18 +649,18 @@ impl AppView {
         // content, so the header's Settings stays reachable.
         let (status, reconnecting) = match link {
             AgentLink::Connecting => {
-                window.set_window_title("OpenLogi");
+                window.set_window_title("OpenHID/BT");
                 return root.child(status::connecting_body(cx)).into_any_element();
             }
             AgentLink::Unreachable { retrying } => {
-                window.set_window_title("OpenLogi");
+                window.set_window_title("OpenHID/BT");
                 return root
                     .child(home::home_header(cx))
                     .child(status::unreachable_body(retrying, cx))
                     .into_any_element();
             }
             AgentLink::OutdatedGui => {
-                window.set_window_title("OpenLogi");
+                window.set_window_title("OpenHID/BT");
                 return root.child(status::outdated_gui_body(cx)).into_any_element();
             }
             AgentLink::Reconnecting(status) => (status, true),
@@ -668,7 +669,7 @@ impl AppView {
 
         let granted = status.accessibility_granted;
         if !granted && !self.accessibility_dismissed {
-            window.set_window_title("OpenLogi");
+            window.set_window_title("OpenHID/BT");
             return root.child(Self::accessibility_gate(cx)).into_any_element();
         }
 

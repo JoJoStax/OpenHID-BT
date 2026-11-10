@@ -33,6 +33,9 @@ tracing = { workspace = true }
 # The machine name Flow peers show for this computer.
 gethostname = "1.1.0"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+openhid-qcy = { path = "../openhid-qcy" }
+
 [lints]
 workspace = true
 

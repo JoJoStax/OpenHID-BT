@@ -14,3 +14,4 @@ pub(crate) mod slider_row;
 pub mod spacing;
 pub mod status;
 pub mod theme;
+pub mod de_theme;

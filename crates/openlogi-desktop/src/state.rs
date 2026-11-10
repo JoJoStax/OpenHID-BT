@@ -109,6 +109,7 @@ mod report_rate;
 mod scroll;
 mod settings;
 mod sidetone;
+mod audio;
 mod smartshift;
 
 #[cfg(test)]

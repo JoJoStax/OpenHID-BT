@@ -12,12 +12,12 @@
 
 use std::path::Path;
 
-/// The OpenLogi GitHub repository.
-pub const REPO_URL: &str = "https://github.com/AprilNEA/OpenLogi";
+/// The OpenHID/BT GitHub repository.
+pub const REPO_URL: &str = "https://github.com/JoJoStax/OpenHID-BT";
 /// The README, used as the in-app "Help" link.
-pub const HELP_URL: &str = "https://github.com/AprilNEA/OpenLogi#readme";
+pub const HELP_URL: &str = "https://github.com/JoJoStax/OpenHID-BT#readme";
 /// The "latest release" page.
-pub const RELEASES_URL: &str = "https://github.com/AprilNEA/OpenLogi/releases/latest";
+pub const RELEASES_URL: &str = "https://github.com/JoJoStax/OpenHID-BT/releases/latest";
 
 /// The application identifier: the Wayland xdg-toplevel `app_id` (and X11
 /// `WM_CLASS`) the GUI advertises, the root of the macOS bundle-id family
@@ -68,7 +68,7 @@ pub fn dev_id(id: &str) -> String {
 
 /// The app's display name: the outer bundle's `CFBundleName` and
 /// `CFBundleDisplayName`, and the root the helpers' names are formed from.
-pub const APP_NAME: &str = "OpenLogi";
+pub const APP_NAME: &str = "OpenHID/BT";
 
 /// The GUI's executable, as cargo builds it and as the macOS bundle and the
 /// Linux packages ship it. The helpers' executables are [`Helper::executable`].
@@ -125,8 +125,8 @@ impl Helper {
     #[must_use]
     pub const fn display_name(self) -> &'static str {
         match self {
-            Self::Agent => "OpenLogi Agent",
-            Self::Overlay => "OpenLogi Overlay",
+            Self::Agent => "OpenHID/BT Agent",
+            Self::Overlay => "OpenHID/BT Overlay",
         }
     }
 
@@ -388,11 +388,11 @@ mod tests {
     fn helper_bundles_are_named_after_their_display_names() {
         assert_eq!(
             Helper::Agent.bundle_dir(),
-            "Contents/Library/LoginItems/OpenLogi Agent.app"
+            "Contents/Library/LoginItems/OpenHID/BT Agent.app"
         );
         assert_eq!(
             Helper::Overlay.dev_bundle_dir(),
-            "Contents/Library/LoginItems/OpenLogi Overlay Dev.app"
+            "Contents/Library/LoginItems/OpenHID/BT Overlay Dev.app"
         );
         // Bundles built before the helpers took their display names are
         // still found, after the current layouts.
