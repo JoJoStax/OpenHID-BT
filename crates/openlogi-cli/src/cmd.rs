@@ -6,6 +6,7 @@ use clap::Subcommand;
 pub mod api;
 pub mod assets;
 pub mod backlight;
+pub mod bt;
 pub mod camera;
 pub mod diag;
 pub mod fixture;
@@ -15,6 +16,8 @@ pub mod light;
 pub mod list;
 #[cfg(target_os = "linux")]
 pub mod qcy;
+#[cfg(target_os = "linux")]
+pub mod razer;
 pub mod snapshot;
 
 #[derive(Debug, Subcommand)]
@@ -41,10 +44,17 @@ pub enum Command {
     /// Inspect and control standalone Logitech lights.
     #[command(subcommand)]
     Light(light::LightCmd),
+    /// Inspect, probe, and test Bluetooth GATT devices and headsets.
+    #[command(subcommand)]
+    Bt(bt::BtCmd),
     /// Inspect and control QCY Bluetooth devices (ANC, Game Mode).
     #[cfg(target_os = "linux")]
     #[command(subcommand)]
     Qcy(qcy::QcyCmd),
+    /// Inspect and control Razer Bluetooth headsets (Chroma BLE, Auto Standby).
+    #[cfg(target_os = "linux")]
+    #[command(subcommand)]
+    Razer(razer::RazerCmd),
 }
 
 impl Command {
@@ -66,8 +76,11 @@ impl Command {
             Self::Diag(cmd) => cmd.run().await?,
             Self::Fixture(cmd) => cmd.run().await?,
             Self::Light(cmd) => cmd.run().await?,
+            Self::Bt(cmd) => return cmd.run().await,
             #[cfg(target_os = "linux")]
             Self::Qcy(cmd) => return cmd.run().await,
+            #[cfg(target_os = "linux")]
+            Self::Razer(cmd) => return cmd.run().await,
         }
         Ok(ExitCode::SUCCESS)
     }

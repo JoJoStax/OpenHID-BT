@@ -355,6 +355,19 @@ pub async fn enumerate_standalone() -> Result<Vec<StandaloneDevice>, InventoryEr
                 devices.push(openhid_qcy::device::standalone_device_from_qcy(qcy));
             }
         }
+        if let Ok(razer_devs) = openhid_razer::transport::enumerate_bluez_razer_devices().await {
+            let has_online_for_model = |model_id: &str| {
+                razer_devs
+                    .iter()
+                    .any(|d| d.connected && d.model.model_id == model_id)
+            };
+            for razer in &razer_devs {
+                if !razer.connected && has_online_for_model(razer.model.model_id) {
+                    continue;
+                }
+                devices.push(openhid_razer::device::standalone_device_from_razer(razer));
+            }
+        }
     }
     Ok(devices)
 }

@@ -6006,6 +6006,7 @@ dependencies = [
  "objc2-service-management",
  "opener",
  "openhid-qcy",
+ "openhid-razer",
  "openlogi-assets",
  "openlogi-camera",
  "openlogi-core",
@@ -6059,6 +6060,19 @@ dependencies = [
 name = "openhid-qcy"
 version = "0.9.0"
 dependencies = [
+ "openlogi-core",
+ "serde",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+ "zbus",
+]
+
+[[package]]
+name = "openhid-razer"
+version = "0.9.0"
+dependencies = [
+ "num_enum",
  "openlogi-core",
  "serde",
  "thiserror 2.0.18",
@@ -6155,7 +6169,9 @@ dependencies = [
  "atomic-write-file",
  "clap",
  "futures",
+ "futures-lite",
  "openhid-qcy",
+ "openhid-razer",
  "openlogi-assets",
  "openlogi-camera",
  "openlogi-core",
@@ -6170,6 +6186,7 @@ dependencies = [
  "tempfile",
  "tokio",
  "tracing",
+ "zbus",
 ]
 
 [[package]]
@@ -6263,6 +6280,7 @@ dependencies = [
  "image",
  "objc2-io-kit",
  "openhid-qcy",
+ "openhid-razer",
  "openlogi-async-hid",
  "openlogi-core",
  "openlogi-device",

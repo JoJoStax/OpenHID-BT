@@ -29,7 +29,10 @@ tokio = { workspace = true, features = ["rt", "macros", "sync", "time"] }
 tracing = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
+futures-lite = { workspace = true }
 openhid-qcy = { path = "../openhid-qcy" }
+openhid-razer = { path = "../openhid-razer" }
+zbus = "5"
 
 [dev-dependencies]
 futures = "0.3"

@@ -23,6 +23,7 @@ members = [
     "crates/openlogi-overlay",
     "crates/openlogi-hook",
     "crates/openhid-qcy",
+    "crates/openhid-razer",
     "xtask",
 ]
 # The CLI used to be the root package, so a bare `cargo build` / `cargo run`

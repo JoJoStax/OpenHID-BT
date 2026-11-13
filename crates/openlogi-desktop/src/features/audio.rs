@@ -57,12 +57,15 @@ impl Render for AudioPanel {
             self.sidetone = None;
         }
 
-        let is_qcy_or_bt = AppState::try_read(cx)
+        let (is_razer, is_qcy_or_bt) = AppState::try_read(cx)
             .and_then(AppState::current_record)
-            .is_some_and(|r| {
-                r.driver_id.as_deref() == Some("openhid-qcy")
-                    || r.driver_id.as_deref() == Some("qcy")
-                    || matches!(r.kind, openlogi_core::device::DeviceKind::Headset)
+            .map_or((false, false), |r| {
+                let razer = r.driver_id.as_deref() == Some("razer");
+                let qcy = !razer
+                    && (r.driver_id.as_deref() == Some("openhid-qcy")
+                        || r.driver_id.as_deref() == Some("qcy")
+                        || matches!(r.kind, openlogi_core::device::DeviceKind::Headset));
+                (razer, qcy)
             });
 
         let mut panel = v_flex().w_full().gap_4();
@@ -71,7 +74,26 @@ impl Render for AudioPanel {
             panel = panel.child(sidetone_section(facts, self.sidetone.as_ref(), pal));
         }
 
-        if is_qcy_or_bt {
+        if is_razer {
+            let audio_state = AppState::try_read(cx)
+                .map(|s| s.current_audio_state())
+                .unwrap_or_default();
+            let online = AppState::try_read(cx)
+                .and_then(AppState::current_record)
+                .is_some_and(|r| r.is_online());
+
+            panel = panel
+                .child(render_razer_chroma_card(
+                    audio_state.razer_led_mode,
+                    online,
+                    pal,
+                ))
+                .child(render_razer_standby_card(
+                    audio_state.razer_standby,
+                    online,
+                    pal,
+                ));
+        } else if is_qcy_or_bt {
             let audio_state = AppState::try_read(cx)
                 .map(|s| s.current_audio_state())
                 .unwrap_or_default();
@@ -535,5 +557,92 @@ fn render_hardware_card(
         "Device Configuration & Power",
         Icon::empty().path("action-icons/settings.svg"),
         v_flex().gap_4().child(volume_row).child(auto_off_row),
+    )
+}
+
+fn render_razer_chroma_card(
+    current_mode: openhid_razer::protocol::commands::RazerLedMode,
+    online: bool,
+    pal: Palette,
+) -> impl IntoElement {
+    use openhid_razer::protocol::commands::{RazerLedMode, RgbColor};
+
+    let presets = [
+        ("Off", RazerLedMode::Off),
+        ("Spectrum", RazerLedMode::Spectrum),
+        ("Razer Green", RazerLedMode::Static(RgbColor::RAZER_GREEN)),
+        ("Audio Meter", RazerLedMode::AudioMeter(RgbColor::RAZER_GREEN)),
+    ];
+
+    PanelCard::new(
+        "Razer Chroma BLE",
+        Icon::empty().path("action-icons/sparkles.svg"),
+        v_flex()
+            .gap_3()
+            .child(
+                div()
+                    .text_caption()
+                    .text_color(pal.text_muted)
+                    .child("Control earcup Chroma lighting over Bluetooth Low Energy."),
+            )
+            .child(h_flex().gap_2().children(presets.into_iter().map(
+                |(label, mode)| {
+                    let mut btn = control_button(format!("razer-led-{label}"))
+                        .label(label)
+                        .disabled(!online)
+                        .on_click(move |_, _, cx| {
+                            AppState::apply(cx, |s| s.commit_razer_led(mode));
+                        });
+                    if current_mode == mode {
+                        btn = btn.primary();
+                    }
+                    btn
+                },
+            ))),
+    )
+}
+
+fn render_razer_standby_card(
+    current_standby: openhid_razer::protocol::commands::AutoStandby,
+    online: bool,
+    pal: Palette,
+) -> impl IntoElement {
+    use openhid_razer::protocol::commands::AutoStandby;
+
+    let options = [
+        AutoStandby::Never,
+        AutoStandby::Minutes5,
+        AutoStandby::Minutes15,
+        AutoStandby::Minutes30,
+        AutoStandby::Minutes45,
+        AutoStandby::Minutes60,
+    ];
+
+    PanelCard::new(
+        "Power & Auto-Standby",
+        Icon::empty().path("action-icons/settings.svg"),
+        v_flex()
+            .gap_3()
+            .child(
+                div()
+                    .text_caption()
+                    .text_color(pal.text_muted)
+                    .child("Automatically power off the headset after inactivity."),
+            )
+            .child(h_flex().gap_2().children(options.into_iter().map(
+                |duration| {
+                    let label = duration.label();
+                    let mut btn = control_button(format!("razer-standby-{label}"))
+                        .label(label)
+                        .disabled(!online)
+                        .on_click(move |_, _, cx| {
+                            AppState::apply(cx, |s| s.commit_razer_standby(duration));
+                        });
+                    if current_standby == duration {
+                        btn = btn.primary();
+                    }
+                    btn
+                },
+            ))),
     )
 }

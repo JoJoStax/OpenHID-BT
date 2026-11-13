@@ -134,6 +134,50 @@ impl AppState {
         self.for_current_device(StateEvent::AudioChanged)
     }
 
+    /// Set Razer Chroma BLE LED mode and dispatch over BlueZ.
+    pub fn commit_razer_led(
+        &mut self,
+        mode: openhid_razer::protocol::commands::RazerLedMode,
+    ) -> StateEvents {
+        let Some((key, address)) = self.current_audio_target() else {
+            return StateEvents::none();
+        };
+        self.devices
+            .sessions
+            .entry(key)
+            .or_default()
+            .audio
+            .razer_led_mode = mode;
+
+        dispatch_razer_action(address, move |client| async move {
+            let _ = client.set_led_mode(mode).await;
+        });
+
+        self.for_current_device(StateEvent::AudioChanged)
+    }
+
+    /// Set Razer Bluetooth headset auto-standby timeout and dispatch over BlueZ.
+    pub fn commit_razer_standby(
+        &mut self,
+        duration: openhid_razer::protocol::commands::AutoStandby,
+    ) -> StateEvents {
+        let Some((key, address)) = self.current_audio_target() else {
+            return StateEvents::none();
+        };
+        self.devices
+            .sessions
+            .entry(key)
+            .or_default()
+            .audio
+            .razer_standby = duration;
+
+        dispatch_razer_action(address, move |client| async move {
+            let _ = client.set_auto_standby(duration).await;
+        });
+
+        self.for_current_device(StateEvent::AudioChanged)
+    }
+
     fn current_audio_target(&self) -> Option<(DeviceKey, Option<String>)> {
         let record = self.current_record()?;
         let key = record.device_key();
@@ -165,6 +209,42 @@ where
                     };
                     if let Some(dev) = target {
                         let client = openhid_qcy::transport::BluezQcyClient::new(dev);
+                        f(client).await;
+                    }
+                }
+            });
+        });
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = address;
+        let _ = f;
+    }
+}
+
+fn dispatch_razer_action<F, Fut>(address: Option<String>, f: F)
+where
+    F: FnOnce(openhid_razer::transport::BluezRazerClient) -> Fut + Send + 'static,
+    Fut: std::future::Future<Output = ()> + Send + 'static,
+{
+    #[cfg(target_os = "linux")]
+    {
+        std::thread::spawn(move || {
+            let Ok(rt) = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+            else {
+                return;
+            };
+            rt.block_on(async move {
+                if let Ok(devs) = openhid_razer::transport::enumerate_bluez_razer_devices().await {
+                    let target = if let Some(ref addr) = address {
+                        devs.into_iter().find(|d| d.address.eq_ignore_ascii_case(addr))
+                    } else {
+                        devs.into_iter().find(|d| d.connected)
+                    };
+                    if let Some(dev) = target {
+                        let client = openhid_razer::transport::BluezRazerClient::new(dev);
                         f(client).await;
                     }
                 }

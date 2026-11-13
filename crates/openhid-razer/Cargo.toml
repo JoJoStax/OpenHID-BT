@@ -1,0 +1,23 @@
+[package]
+name = "openhid-razer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Razer Bluetooth headset and audio peripheral protocol and backend driver for OpenHID/BT"
+
+[dependencies]
+num_enum = { workspace = true }
+openlogi-core = { path = "../openlogi-core", default-features = false }
+serde = { workspace = true, features = ["derive"] }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["sync", "time", "rt"] }
+tracing = { workspace = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+zbus = "5"
+
+[lints]
+workspace = true

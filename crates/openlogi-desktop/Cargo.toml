@@ -17,6 +17,7 @@ path = "src/main.rs"
 
 [dependencies]
 openhid-qcy = { path = "../openhid-qcy" }
+openhid-razer = { path = "../openhid-razer" }
 appcatalog = "0.1.1"
 openlogi-core = { path = "../openlogi-core", features = ["logging", "worker"] }
 openlogi-ui = { path = "../openlogi-ui" }
