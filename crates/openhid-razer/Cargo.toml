@@ -6,9 +6,11 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
-description = "Razer Bluetooth headset and audio peripheral protocol and backend driver for OpenHID/BT"
+description = "Razer Bluetooth headset and USB/2.4GHz mouse protocol and backend driver for OpenHID/BT"
 
 [dependencies]
+async-hid = { workspace = true }
+futures-lite = { workspace = true }
 num_enum = { workspace = true }
 openlogi-core = { path = "../openlogi-core", default-features = false }
 serde = { workspace = true, features = ["derive"] }

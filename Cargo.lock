@@ -6072,7 +6072,9 @@ dependencies = [
 name = "openhid-razer"
 version = "0.9.0"
 dependencies = [
+ "futures-lite",
  "num_enum",
+ "openlogi-async-hid",
  "openlogi-core",
  "serde",
  "thiserror 2.0.18",

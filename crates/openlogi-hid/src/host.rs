@@ -342,6 +342,11 @@ pub fn channel_pool() -> ChannelPool {
 /// Enumerate this host's recognized standalone devices.
 pub async fn enumerate_standalone() -> Result<Vec<StandaloneDevice>, InventoryError> {
     let mut devices = openlogi_device::inventory::standalone::enumerate_standalone(&*native_backend()).await?;
+    if let Ok(razer_mice) = openhid_razer::mouse::enumerate_razer_mice().await {
+        for mouse in &razer_mice {
+            devices.push(openhid_razer::mouse::standalone_device_from_razer_mouse(mouse));
+        }
+    }
     #[cfg(target_os = "linux")]
     {
         if let Ok(qcy_devs) = openhid_qcy::transport::enumerate_bluez_qcy_devices().await {

@@ -5,6 +5,7 @@
 //! (Kraken BT, Barracuda, Opus, Hammerhead, BlackShark, Kaira).
 
 pub mod device;
+pub mod mouse;
 pub mod protocol;
 pub mod transport;
 
