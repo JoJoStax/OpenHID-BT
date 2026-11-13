@@ -19,6 +19,8 @@
 - **Built on OpenLogi**: We use OpenLogi as our core base. As OpenLogi develops new features and improvements, we regularly pull and integrate upstream changes to keep our Logitech support top-tier.
 - **Expanding Beyond Logitech**: While OpenLogi focuses primarily on Logitech hardware, OpenHID/BT is structured to expand into a unified backend supporting peripherals from multiple manufacturers and open-source projects.
 - **QCY Bluetooth Support (Pure Rust Backend)**: Integrated native Bluetooth support for QCY audio devices (H3, H3S, MeloBuds Pro, etc.) based on protocol reverse engineering from [HttpKiwi/OpenQCY](https://github.com/HttpKiwi/OpenQCY) and [GiorgioRafael/OpenQCY-Desktop](https://github.com/GiorgioRafael/OpenQCY-Desktop). Implemented in 100% pure Rust over Linux BlueZ D-Bus (`crates/openhid-qcy`), providing ANC mode switching (Off, Indoor, Commuting, Noisy, Anti-Wind, Adaptive, Transparency) and Low Latency Game Mode directly within the native OpenHID/BT architecture.
+- **Razer Bluetooth Headset Support (Experimental)**: Added pure Rust BlueZ GATT support (`crates/openhid-razer`) for Razer Bluetooth headsets (Kraken BT / Kitty Edition, Barracuda, Opus, Hammerhead, BlackShark, Kaira), including Chroma BLE lighting modes and Auto-Standby timers.
+- **Bluetooth Debugging & GATT Testing (`openhid bt`)**: Built-in BlueZ inspection, GATT service/characteristic dumping, live notification watching, raw hex writes, and privacy-safe JSON snapshots to help bring up more Bluetooth headsets.
 - **100% Free & No Monetization**: This project is and will remain strictly free and open-source. **There is zero monetization, no telemetry, no paid tiers, and no donations are accepted.** If you want to show support, please star the project and support the upstream creators!
 - **Desktop Environment Adaptability**: OpenHID/BT keeps OpenLogi's clean, modern visual design while adapting dynamically to Linux desktop environments (**KDE Plasma**, **GNOME**, **Hyprland**, etc.), matching your system's color schemes and accent colors automatically.
 - **Enhanced Device Support**: Includes fixes for modern gaming hardware such as the **Logitech G502 X Lightspeed** (Host Mode switching to prevent DPI resetting to 1800, `0x8110` Button Spy capture for DPI Up/Down/Shift and Profile Cycle remapping, and dedicated preview artwork).
@@ -72,96 +74,51 @@ Runs on Linux, macOS, and Windows.
 ## Install
 
 > [!IMPORTANT]
-> Quit **Logi Options+** first: the two applications fight over HID++ access, and only one can own a given receiver at a time.
-
-### macOS
-
-Requires macOS 13 or later.
-
-Download the signed, notarized `.dmg` from the [latest release](https://github.com/AprilNEA/OpenLogi/releases/latest) and drag `OpenLogi.app` to `/Applications`.
-
-Or install via [Homebrew](https://brew.sh):
-
-```sh
-brew install --cask openlogi
-```
-
-The official Homebrew cask is the default installation path. To explicitly
-track the latest GitHub release from `aprilnea/tap` instead:
-
-```sh
-brew tap aprilnea/tap
-brew install --cask aprilnea/tap/openlogi@latest
-```
-
-`openlogi@latest` is maintained by OpenLogi's release workflow and may update
-before the official cask autobump lands. Install either `openlogi` or
-`openlogi@latest`, not both.
+> Quit **Logi Options+** / **Razer Synapse** first if installed: only one application can own a given HID receiver or device at a time.
 
 ### Linux
 
-Download the installer over HTTPS, inspect it, then run it. Do not pipe it into
-a shell:
+#### AppImage (Recommended)
+
+Download the latest `OpenHID-BT-*-linux-x86_64.AppImage` (or `aarch64`) from the [latest release](https://github.com/JoJoStax/OpenHID-BT/releases/latest):
 
 ```sh
-curl --proto '=https' --proto-redir '=https' --tlsv1.2 \
-  --fail --location --silent --show-error \
-  --retry 3 --retry-connrefused \
-  --output openlogi-install.sh \
-  https://raw.githubusercontent.com/AprilNEA/OpenLogi/master/packaging/linux/install.sh
-less openlogi-install.sh
-sh openlogi-install.sh
-rm openlogi-install.sh
+chmod +x OpenHID-BT-*.AppImage
+./OpenHID-BT-*.AppImage
 ```
 
-The script detects apt, dnf, yum, zypper, rpm, or pacman; selects the exact
-`.deb`, `.rpm`, or `.pkg.tar.zst` for the machine; authenticates its detached
-signature with OpenLogi's embedded minisign public key; and verifies its entry
-in the release `SHA256SUMS` before invoking the package manager with `sudo`.
-Install `minisign` through your distribution first. Run the script as your
-normal user, not with `sudo`. It installs the latest release by default. Use
-`--version`, `--package-manager`, `--no-start`, or `--dry-run` when needed.
-
-Packages are published for both `x86_64`/`amd64` and `arm64`/`aarch64`.
-Pre-built packages require GLIBC 2.35 or newer (Ubuntu 22.04 baseline).
-
-Each release also carries a Flatpak bundle, for `amd64` and `arm64`:
+To install udev rules so your user can access `/dev/hidraw*`, `/dev/uinput`, and `/dev/input/event*` without `sudo`:
 
 ```sh
-flatpak install --user ./openlogi-*.flatpak
+./OpenHID-BT-*.AppImage --udev-rules | sudo tee /etc/udev/rules.d/70-openlogi.rules >/dev/null
+sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
 
-It is a one-time install: there is no remote behind it, so `flatpak update` has
-nothing to check and a new version means downloading the next bundle.
-
-A Flatpak cannot write to `/etc`, so its udev rules go on the host separately.
-They ship inside the application, so this needs no extra download:
+You can also invoke the bundled `openhid` CLI directly through the AppImage:
 
 ```sh
-flatpak run --command=cat org.openlogi.OpenLogi /app/share/openlogi/udev/70-openlogi.rules | sudo tee /etc/udev/rules.d/70-openlogi.rules >/dev/null && sudo udevadm control --reload-rules && sudo udevadm trigger
+./OpenHID-BT-*.AppImage --cli bt list
 ```
 
-Until that runs, no devices are detected at all. Nothing extra is needed for
-`/dev/uinput`: the rules create its node at boot with `static_node=uinput`, and
-opening it loads the module. The agent is launched by the application itself, so
-unlike the packages below there is no user service to enable.
+#### Distribution Packages & Installer
 
-NixOS users can instead import the repository's module, which installs the
-package and udev rules and starts the agent with the graphical session:
+Pre-built packages (`.deb`, `.rpm`, `.pkg.tar.zst`, `.flatpak`) and the Linux installer script are available in [releases](https://github.com/JoJoStax/OpenHID-BT/releases/latest) and [`packaging/linux/`](packaging/linux/install.sh).
+
+For NixOS flakes:
 
 ```nix
 {
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-  inputs.openlogi = {
-    url = "github:AprilNEA/OpenLogi";
+  inputs.openhid-bt = {
+    url = "github:JoJoStax/OpenHID-BT";
     inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { nixpkgs, openlogi, ... }: {
+  outputs = { nixpkgs, openhid-bt, ... }: {
     nixosConfigurations.my-host = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux"; # or aarch64-linux
       modules = [
-        openlogi.nixosModules.default
+        openhid-bt.nixosModules.default
         { programs.openlogi.enable = true; }
       ];
     };
@@ -169,42 +126,51 @@ package and udev rules and starts the agent with the graphical session:
 }
 ```
 
-All Linux packages install udev rules that grant your user access to
-`/dev/hidraw*`, `/dev/uinput` and your Logitech mouse's `/dev/input/event*`
-node without `sudo`. The installer and NixOS module start the agent
-automatically; after a manual package installation, enable it for your user:
+#### Build from Source (Linux)
 
 ```sh
-systemctl --user enable --now openlogi-agent.service
+git clone https://github.com/JoJoStax/OpenHID-BT.git
+cd OpenHID-BT
+cargo run -p openhid-desktop
+# or run the CLI directly:
+cargo run -p openhid -- list
 ```
 
-See [docs/INSTALL-linux.md](docs/INSTALL-linux.md) for fixed-version installs,
-complete NixOS options, source installs, and distros without systemd.
+To build a local AppImage yourself (requires `appimagetool` on `PATH`):
+
+```sh
+bash packaging/linux/build-appimage.sh
+```
+
+See [docs/INSTALL-linux.md](docs/INSTALL-linux.md) for udev rules, distros without systemd, and additional Linux setup notes.
+
+### macOS
+
+Requires macOS 13 or later.
+
+Download the macOS build from the [latest release](https://github.com/JoJoStax/OpenHID-BT/releases/latest) (or build from source with `cargo run -p openhid-desktop`, which requires full Xcode for GPUI Metal shaders).
 
 ### Windows
 
-Signed portable `.zip` archives and per-user `.msi` installers (x86_64 and
-arm64) are attached to each release. Both ship the GUI (`OpenLogi.exe`)
-together with the background agent (`openlogi-agent.exe`), which owns all
-device I/O. Keep the two files side by side when using the portable zip, or
-the GUI has nothing to connect to.
+Download the Windows build from the [latest release](https://github.com/JoJoStax/OpenHID-BT/releases/latest) or build from source (`cargo run -p openhid-desktop`). Keep the GUI executable alongside `openhid-agent.exe`, which owns all device I/O. If you hit any issues, please [report them](https://github.com/JoJoStax/OpenHID-BT/issues).
 
-Windows support has been validated end-to-end on Windows 11 with real
-hardware (a wired keyboard and a Unifying-receiver mouse), including
-install, in-place upgrade, and uninstall of the MSI. It is newer than the
-macOS build, so if you hit a rough edge please
-[report it](https://github.com/AprilNEA/OpenLogi/issues). The agent shows a
-system-tray icon (Show Main Window / Quit) so the app stays reachable after
-the main window is closed. To disable it on Windows, set
-`show_in_menu_bar = false` in the TOML `[app_settings]` block and restart the
-agent; the GUI toggle is currently macOS-only.
-
-To build from source, see [DEVELOPMENT.md](docs/DEVELOPMENT.md).
-
+To build from source on any platform, see [DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ## Usage (CLI)
 
-See [USAGE.md](docs/USAGE.md)
+The `openhid` CLI provides device inventory, diagnostics, and Bluetooth GATT debugging tools:
+
+```sh
+openhid list                       # List HID++, standalone, and Bluetooth devices
+openhid qcy list                   # List QCY Bluetooth headsets
+openhid razer list                 # List Razer Bluetooth headsets
+openhid bt list --audio-only       # Inspect all BlueZ audio/vendor devices
+openhid bt gatt --read             # Dump & read a headset's GATT services/characteristics
+openhid bt watch                   # Stream live GATT notifications as hex + ASCII
+openhid bt snapshot --redact-mac   # Capture a privacy-safe JSON device snapshot
+```
+
+See [USAGE.md](docs/USAGE.md) for the full CLI reference.
 
 ## Configuration
 
@@ -248,8 +214,17 @@ your own projects, forks, or distributions without prior written permission.
 
 ---
 
-**Not affiliated with Logitech.** "Logitech", "MX Master", and "Options+" are trademarks of Logitech International S.A.
+**Not affiliated with Logitech, Razer, or QCY.** "Logitech", "MX Master", "Options+", "Razer", and "Chroma" are trademarks of their respective owners.
 
-## Repo activity
+## Live Statistics & Repo Activity
 
-![Repobeats analytics image](https://repobeats.com/AprilNEA/OpenLogi "Repobeats analytics image")
+<div align="center">
+  <a href="https://github.com/JoJoStax/OpenHID-BT/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/JoJoStax/OpenHID-BT?style=flat"></a>
+  <a href="https://github.com/JoJoStax/OpenHID-BT/network/members"><img alt="GitHub Forks" src="https://img.shields.io/github/forks/JoJoStax/OpenHID-BT?style=flat"></a>
+  <a href="https://github.com/JoJoStax/OpenHID-BT/issues"><img alt="GitHub Issues" src="https://img.shields.io/github/issues/JoJoStax/OpenHID-BT?style=flat"></a>
+  <a href="https://github.com/JoJoStax/OpenHID-BT/releases"><img alt="Latest Release" src="https://img.shields.io/github/v/release/JoJoStax/OpenHID-BT?include_prereleases&style=flat"></a>
+</div>
+
+<br/>
+
+![Repobeats analytics image](https://repobeats.com/JoJoStax/OpenHID-BT "Repobeats analytics image")
