@@ -187,18 +187,31 @@ pub const HEADPHONE_DB: &[HeadphoneProfile] = &[
     },
 ];
 
-/// Generic fallback profile for unrecognized Bluetooth headphones.
+const ALL_CODECS_SUITE: &[A2dpCodec] = &[
+    A2dpCodec::Ldac,
+    A2dpCodec::AptxAdaptive,
+    A2dpCodec::AptxHd,
+    A2dpCodec::AptxLl,
+    A2dpCodec::Aptx,
+    A2dpCodec::Aac,
+    A2dpCodec::SbcXq,
+    A2dpCodec::Sbc,
+];
+
+/// Generic fallback profile for unrecognized Bluetooth headphones of any brand.
+/// Exposes all codec and feature options so users can enable whatever their
+/// hardware/driver supports.
 pub const GENERIC_HEADPHONE_PROFILE: HeadphoneProfile = HeadphoneProfile {
     model_id: "bt-generic",
     display_name: "Bluetooth Audio Device",
     aliases: &[],
-    supported_codecs: AAC_SBC_SUITE,
+    supported_codecs: ALL_CODECS_SUITE,
     preferred_codec: A2dpCodec::Aac,
-    max_sample_rate: SampleRate::Hz48000,
-    has_anc: false,
-    has_game_mode: false,
-    has_multipoint: false,
-    has_onboard_eq: false,
+    max_sample_rate: SampleRate::Hz96000,
+    has_anc: true,
+    has_game_mode: true,
+    has_multipoint: true,
+    has_onboard_eq: true,
 };
 
 /// Look up a headphone capability profile by `model_id` or advertised `name`.

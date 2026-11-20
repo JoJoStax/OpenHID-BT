@@ -97,20 +97,33 @@ impl Render for AudioPanel {
             let audio_state = AppState::try_read(cx)
                 .map(|s| s.current_audio_state())
                 .unwrap_or_default();
-            let online = AppState::try_read(cx)
+            let (online, profile) = AppState::try_read(cx)
                 .and_then(AppState::current_record)
-                .is_some_and(|r| r.is_online());
+                .map_or((false, openhid_bt_audio::GENERIC_HEADPHONE_PROFILE), |r| {
+                    (
+                        r.is_online(),
+                        openhid_bt_audio::lookup_headphone(
+                            &r.display_name,
+                            r.registry_model_id.as_deref(),
+                        ),
+                    )
+                });
 
+            if profile.has_anc {
+                panel = panel.child(render_anc_card(audio_state.anc_mode, online, pal));
+            }
+            panel = panel.child(render_codec_card(
+                audio_state.a2dp_codec,
+                audio_state.ldac_quality,
+                audio_state.sample_rate,
+                &profile,
+                online,
+                pal,
+            ));
+            if profile.has_onboard_eq {
+                panel = panel.child(render_eq_card(audio_state.eq_preset, online, pal));
+            }
             panel = panel
-                .child(render_anc_card(audio_state.anc_mode, online, pal))
-                .child(render_codec_card(
-                    audio_state.a2dp_codec,
-                    audio_state.ldac_quality,
-                    audio_state.sample_rate,
-                    online,
-                    pal,
-                ))
-                .child(render_eq_card(audio_state.eq_preset, online, pal))
                 .child(render_performance_card(
                     audio_state.game_mode,
                     audio_state.multipoint,
@@ -659,24 +672,27 @@ fn render_codec_card(
     current_codec: openhid_bt_audio::A2dpCodec,
     current_ldac_quality: openhid_bt_audio::LdacQuality,
     current_sample_rate: openhid_bt_audio::SampleRate,
+    profile: &openhid_bt_audio::HeadphoneProfile,
     online: bool,
     pal: Palette,
 ) -> impl IntoElement {
     use openhid_bt_audio::{A2dpCodec, LdacQuality, SampleRate};
 
     let codec_buttons = h_flex().flex_wrap().gap_2().children(
-        A2dpCodec::ALL.iter().copied().map(|codec| {
-            let mut btn = control_button(format!("a2dp-codec-{}", codec.short_name()))
-                .label(codec.short_name())
-                .disabled(!online)
-                .on_click(move |_, _, cx| {
-                    AppState::apply(cx, |s| s.commit_audio_codec(codec));
-                });
-            if current_codec == codec {
-                btn = btn.primary();
-            }
-            btn
-        }),
+        std::iter::once(A2dpCodec::Auto)
+            .chain(profile.supported_codecs.iter().copied())
+            .map(|codec| {
+                let mut btn = control_button(format!("a2dp-codec-{}", codec.short_name()))
+                    .label(codec.short_name())
+                    .disabled(!online)
+                    .on_click(move |_, _, cx| {
+                        AppState::apply(cx, |s| s.commit_audio_codec(codec));
+                    });
+                if current_codec == codec {
+                    btn = btn.primary();
+                }
+                btn
+            }),
     );
 
     let ldac_qualities = [
