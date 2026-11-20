@@ -68,6 +68,13 @@ pub fn driver_install_dir() -> Option<PathBuf> {
     }
 }
 
+const EMBEDDED_INF: &str =
+    include_str!("../../../packaging/windows/bth-a2dp-driver/OpenHidBthA2dp.inf");
+const EMBEDDED_INSTALL_PS1: &str =
+    include_str!("../../../packaging/windows/bth-a2dp-driver/install-driver.ps1");
+const EMBEDDED_UNINSTALL_PS1: &str =
+    include_str!("../../../packaging/windows/bth-a2dp-driver/uninstall-driver.ps1");
+
 /// Locate the bundled `packaging/windows/bth-a2dp-driver` directory next to the
 /// executable or in the workspace tree.
 #[must_use]
@@ -85,6 +92,29 @@ pub fn locate_driver_package_dir() -> Option<PathBuf> {
         return Some(dev);
     }
     None
+}
+
+/// Ensure the driver INF and PowerShell scripts exist on disk (preferring a
+/// bundled `drivers/bth-a2dp` folder, or extracting the embedded scripts to
+/// `%LocalAppData%\OpenHID-BT\drivers\bth-a2dp-staging`).
+pub fn ensure_driver_package_dir() -> Result<PathBuf, WindowsDriverError> {
+    if let Some(dir) = locate_driver_package_dir() {
+        return Ok(dir);
+    }
+    let base = driver_install_dir()
+        .and_then(|p| p.parent().map(|d| d.join("bth-a2dp-staging")))
+        .ok_or_else(|| {
+            WindowsDriverError::PackageNotFound("LOCALAPPDATA is not set".to_string())
+        })?;
+    std::fs::create_dir_all(&base)
+        .map_err(|e| WindowsDriverError::LaunchFailed(format!("create staging dir: {e}")))?;
+    std::fs::write(base.join("OpenHidBthA2dp.inf"), EMBEDDED_INF)
+        .map_err(|e| WindowsDriverError::LaunchFailed(format!("write INF: {e}")))?;
+    std::fs::write(base.join("install-driver.ps1"), EMBEDDED_INSTALL_PS1)
+        .map_err(|e| WindowsDriverError::LaunchFailed(format!("write install script: {e}")))?;
+    std::fs::write(base.join("uninstall-driver.ps1"), EMBEDDED_UNINSTALL_PS1)
+        .map_err(|e| WindowsDriverError::LaunchFailed(format!("write uninstall script: {e}")))?;
+    Ok(base)
 }
 
 /// Inspect whether the OpenHID/BT Windows A2DP driver is installed.
@@ -129,9 +159,7 @@ pub fn install_or_update_driver() -> Result<(), WindowsDriverError> {
 
     #[cfg(target_os = "windows")]
     {
-        let pkg = locate_driver_package_dir().ok_or_else(|| {
-            WindowsDriverError::PackageNotFound("drivers/bth-a2dp/OpenHidBthA2dp.inf".to_string())
-        })?;
+        let pkg = ensure_driver_package_dir()?;
         let script = pkg.join("install-driver.ps1");
         if !script.exists() {
             return Err(WindowsDriverError::PackageNotFound(
@@ -142,11 +170,13 @@ pub fn install_or_update_driver() -> Result<(), WindowsDriverError> {
         let status = std::process::Command::new("powershell")
             .args([
                 "-NoProfile",
+                "-WindowStyle",
+                "Hidden",
                 "-ExecutionPolicy",
                 "Bypass",
                 "-Command",
                 &format!(
-                    "Start-Process powershell -Verb RunAs -Wait -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File \"{}\" -Version \"{}\"'",
+                    "$p = Start-Process powershell -Verb RunAs -PassThru -Wait -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File \"{}\" -Version \"{}\"'; exit $p.ExitCode",
                     script.display(),
                     BUNDLED_DRIVER_VERSION
                 ),
@@ -172,9 +202,7 @@ pub fn uninstall_driver() -> Result<(), WindowsDriverError> {
 
     #[cfg(target_os = "windows")]
     {
-        let pkg = locate_driver_package_dir().ok_or_else(|| {
-            WindowsDriverError::PackageNotFound("drivers/bth-a2dp/uninstall-driver.ps1".to_string())
-        })?;
+        let pkg = ensure_driver_package_dir()?;
         let script = pkg.join("uninstall-driver.ps1");
         if !script.exists() {
             return Err(WindowsDriverError::PackageNotFound(
@@ -185,11 +213,13 @@ pub fn uninstall_driver() -> Result<(), WindowsDriverError> {
         let status = std::process::Command::new("powershell")
             .args([
                 "-NoProfile",
+                "-WindowStyle",
+                "Hidden",
                 "-ExecutionPolicy",
                 "Bypass",
                 "-Command",
                 &format!(
-                    "Start-Process powershell -Verb RunAs -Wait -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File \"{}\"'",
+                    "$p = Start-Process powershell -Verb RunAs -PassThru -Wait -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File \"{}\"'; exit $p.ExitCode",
                     script.display()
                 ),
             ])

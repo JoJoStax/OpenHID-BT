@@ -66,8 +66,15 @@ pub(super) fn bluetooth_page(view: Entity<SettingsView>) -> SettingPage {
                                     .on_click({
                                         let view = view_install.clone();
                                         move |_, _, cx| {
-                                            let _ = install_or_update_driver();
-                                            view.update(cx, |_, cx| cx.notify());
+                                            let weak = view.downgrade();
+                                            let bg = cx.background_executor().clone();
+                                            cx.spawn(async move |cx| {
+                                                let _ = bg
+                                                    .spawn(async { install_or_update_driver() })
+                                                    .await;
+                                                let _ = weak.update(cx, |_, cx| cx.notify());
+                                            })
+                                            .detach();
                                         }
                                     }),
                             );
@@ -79,8 +86,15 @@ pub(super) fn bluetooth_page(view: Entity<SettingsView>) -> SettingPage {
                                         .on_click({
                                             let view = view_uninstall.clone();
                                             move |_, _, cx| {
-                                                let _ = uninstall_driver();
-                                                view.update(cx, |_, cx| cx.notify());
+                                                let weak = view.downgrade();
+                                                let bg = cx.background_executor().clone();
+                                                cx.spawn(async move |cx| {
+                                                    let _ = bg
+                                                        .spawn(async { uninstall_driver() })
+                                                        .await;
+                                                    let _ = weak.update(cx, |_, cx| cx.notify());
+                                                })
+                                                .detach();
                                             }
                                         }),
                                 );

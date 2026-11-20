@@ -820,8 +820,17 @@ impl AppView {
                                     .primary()
                                     .label("Set Up Driver")
                                     .on_click(cx.listener(|this, _, _, cx| {
-                                        let _ = openhid_bt_audio::install_or_update_driver();
                                         this.bt_driver_prompt_dismissed = true;
+                                        let bg = cx.background_executor().clone();
+                                        cx.spawn(async move |view, cx| {
+                                            let _ = bg
+                                                .spawn(async {
+                                                    openhid_bt_audio::install_or_update_driver()
+                                                })
+                                                .await;
+                                            let _ = view.update(cx, |_, cx| cx.notify());
+                                        })
+                                        .detach();
                                         cx.notify();
                                     })),
                             )
