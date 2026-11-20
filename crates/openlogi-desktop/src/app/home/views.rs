@@ -381,7 +381,15 @@ fn device_list_row(
                                 .text_subheading()
                                 .child(record.display_name.clone()),
                         )
-                        .child(kind_badge(record.kind, pal)),
+                        .child(kind_badge(record.kind, pal))
+                        .when_some(
+                            super::headset_codec_badge(
+                                record,
+                                state.audio_state_for(&record.device_key()).a2dp_codec,
+                                pal,
+                            ),
+                            |row, badge| row.child(badge),
+                        ),
                 )
                 .when_some(custom_model_subtitle(record), |column, model| {
                     column.child(

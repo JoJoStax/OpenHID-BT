@@ -8,16 +8,21 @@ use super::events::{StateEvent, StateEvents};
 use super::AppState;
 
 impl AppState {
+    /// Return the audio state for a specific device key.
+    pub fn audio_state_for(&self, key: &DeviceKey) -> AudioDeviceState {
+        self.devices
+            .sessions
+            .get(key)
+            .map(|s| s.audio.clone())
+            .unwrap_or_default()
+    }
+
     /// Return the active device's audio state.
     pub fn current_audio_state(&self) -> AudioDeviceState {
         let Some(key) = self.current_record().map(|r| r.device_key()) else {
             return AudioDeviceState::default();
         };
-        self.devices
-            .sessions
-            .get(&key)
-            .map(|s| s.audio.clone())
-            .unwrap_or_default()
+        self.audio_state_for(&key)
     }
 
     /// Set ANC mode and dispatch over BlueZ.

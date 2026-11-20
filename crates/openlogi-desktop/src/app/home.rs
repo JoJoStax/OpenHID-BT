@@ -368,7 +368,7 @@ fn device_ring(enabled: bool) -> Hsla {
 
 /// The device class as a small pill riding the name line, in the outlined
 /// shape of the header's `status_badge`.
-pub(super) fn kind_badge(kind: DeviceKind, pal: Palette) -> impl IntoElement {
+pub(super) fn pill_badge(label: impl Into<SharedString>, pal: Palette) -> impl IntoElement {
     div()
         .flex_none()
         .px_1p5()
@@ -379,7 +379,29 @@ pub(super) fn kind_badge(kind: DeviceKind, pal: Palette) -> impl IntoElement {
         .bg(pal.muted)
         .text_caption()
         .text_color(pal.text_muted)
-        .child(kind_label(kind))
+        .child(label.into())
+}
+
+pub(super) fn kind_badge(kind: DeviceKind, pal: Palette) -> impl IntoElement {
+    pill_badge(kind_label(kind), pal)
+}
+
+pub(super) fn headset_codec_badge(
+    record: &DeviceRecord,
+    selected_codec: openhid_bt_audio::A2dpCodec,
+    pal: Palette,
+) -> Option<impl IntoElement> {
+    if !matches!(record.kind, DeviceKind::Headset)
+        && !matches!(record.driver_id.as_deref(), Some("qcy" | "openhid-qcy" | "razer"))
+    {
+        return None;
+    }
+    let profile = openhid_bt_audio::lookup_headphone(
+        &record.display_name,
+        record.registry_model_id.as_deref(),
+    );
+    let effective = openhid_bt_audio::resolve_effective_codec(selected_codec, &profile);
+    Some(pill_badge(effective.short_name(), pal))
 }
 
 /// The model name under a custom display name; `None` when the name already
