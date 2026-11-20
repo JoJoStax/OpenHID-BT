@@ -200,17 +200,21 @@ impl AppState {
         self.for_current_device(StateEvent::AudioChanged)
     }
 
-    /// Set LDAC bitrate / quality preset (990 / 660 / 330 kbps / ABR).
-    pub fn commit_ldac_quality(&mut self, quality: openhid_bt_audio::LdacQuality) -> StateEvents {
+    /// Set codec quality/bitrate slider step (`0..=3`, where `3` is max quality).
+    pub fn commit_codec_quality_step(&mut self, step: u8) -> StateEvents {
         let Some((key, _)) = self.current_audio_target() else {
             return StateEvents::none();
         };
-        self.devices
-            .sessions
-            .entry(key)
-            .or_default()
-            .audio
-            .ldac_quality = quality;
+        let clamped = step.min(3);
+        let ldac_quality = match clamped {
+            0 => openhid_bt_audio::LdacQuality::Adaptive,
+            1 => openhid_bt_audio::LdacQuality::Mobile330,
+            2 => openhid_bt_audio::LdacQuality::Standard660,
+            _ => openhid_bt_audio::LdacQuality::High990,
+        };
+        let audio = &mut self.devices.sessions.entry(key).or_default().audio;
+        audio.codec_quality_step = clamped;
+        audio.ldac_quality = ldac_quality;
 
         self.for_current_device(StateEvent::AudioChanged)
     }

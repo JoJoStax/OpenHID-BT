@@ -26,9 +26,10 @@ use crate::ui::theme::{self, Palette, Typography as _};
 /// The Audio tab's icon, from the shared action-icon set.
 pub const AUDIO_ICON: &str = "action-icons/volume-2.svg";
 
-/// The Audio tab's body, kept across frames for its slider.
+/// The Audio tab's body, kept across frames for its sliders.
 pub struct AudioPanel {
     sidetone: Option<SidetoneSlider>,
+    codec_quality: Option<CodecQualitySlider>,
     _state_obs: Subscription,
 }
 
@@ -42,6 +43,7 @@ impl AudioPanel {
         });
         Self {
             sidetone: None,
+            codec_quality: None,
             _state_obs: state_obs,
         }
     }
@@ -55,6 +57,16 @@ impl Render for AudioPanel {
             SidetoneSlider::sync(&mut self.sidetone, facts, window, cx);
         } else {
             self.sidetone = None;
+        }
+
+        if let Some((key, step)) = AppState::try_read(cx).and_then(|s| {
+            let r = s.current_record()?;
+            let step = s.current_audio_state().codec_quality_step;
+            Some((r.device_key(), step))
+        }) {
+            CodecQualitySlider::sync(&mut self.codec_quality, &key, step, window, cx);
+        } else {
+            self.codec_quality = None;
         }
 
         let (is_razer, is_qcy_or_bt) = AppState::try_read(cx)
@@ -114,7 +126,8 @@ impl Render for AudioPanel {
             }
             panel = panel.child(render_codec_card(
                 audio_state.a2dp_codec,
-                audio_state.ldac_quality,
+                audio_state.codec_quality_step,
+                self.codec_quality.as_ref(),
                 audio_state.sample_rate,
                 &profile,
                 online,
@@ -668,15 +681,80 @@ fn render_razer_standby_card(
     )
 }
 
+struct CodecQualitySlider {
+    key: DeviceKey,
+    slider: CommitSlider<u8>,
+}
+
+impl CodecQualitySlider {
+    fn sync<V: 'static>(
+        current: &mut Option<Self>,
+        key: &DeviceKey,
+        step: u8,
+        window: &mut Window,
+        cx: &mut Context<V>,
+    ) {
+        if let Some(existing) = current.as_ref().filter(|e| &e.key == key) {
+            existing.slider.sync(step.min(3), window, cx);
+            return;
+        }
+        let slider = CommitSlider::new(
+            SliderRange::new(0u8, 3u8),
+            step.min(3),
+            cx,
+            |_, step, cx| AppState::apply(cx, |s| s.commit_codec_quality_step(step)),
+        );
+        *current = Some(Self {
+            key: key.clone(),
+            slider,
+        });
+    }
+}
+
+fn codec_quality_label(codec: openhid_bt_audio::A2dpCodec, step: u8) -> Option<&'static str> {
+    use openhid_bt_audio::A2dpCodec;
+    match codec {
+        A2dpCodec::Ldac => Some(match step {
+            0 => "Adaptive (ABR)",
+            1 => "330 kbps (Connection)",
+            2 => "660 kbps (Balanced)",
+            _ => "990 kbps (Max Quality)",
+        }),
+        A2dpCodec::AptxAdaptive => Some(match step {
+            0 => "279 kbps (Low Latency)",
+            1 => "330 kbps (Balanced)",
+            2 => "380 kbps (High)",
+            _ => "420 kbps (Max Quality)",
+        }),
+        A2dpCodec::Aac => Some(match step {
+            0 => "128 kbps",
+            1 => "192 kbps",
+            2 => "256 kbps",
+            _ => "320 kbps (Max Quality)",
+        }),
+        A2dpCodec::Sbc | A2dpCodec::SbcXq => Some(match step {
+            0 => "229 kbps (Bitpool 35)",
+            1 => "300 kbps (Bitpool 45)",
+            2 => "328 kbps (Bitpool 53)",
+            _ => "551 kbps (SBC XQ Max)",
+        }),
+        _ => None,
+    }
+}
+
 fn render_codec_card(
     current_codec: openhid_bt_audio::A2dpCodec,
-    current_ldac_quality: openhid_bt_audio::LdacQuality,
+    quality_step: u8,
+    quality_slider: Option<&CodecQualitySlider>,
     current_sample_rate: openhid_bt_audio::SampleRate,
     profile: &openhid_bt_audio::HeadphoneProfile,
     online: bool,
     pal: Palette,
 ) -> impl IntoElement {
-    use openhid_bt_audio::{A2dpCodec, LdacQuality, SampleRate};
+    use openhid_bt_audio::{A2dpCodec, SampleRate, resolve_effective_codec};
+
+    let effective_codec = resolve_effective_codec(current_codec, profile);
+    let shown_step = quality_slider.map_or(quality_step, |s| s.slider.shown(quality_step));
 
     let codec_buttons = h_flex().flex_wrap().gap_2().children(
         std::iter::once(A2dpCodec::Auto)
@@ -693,33 +771,6 @@ fn render_codec_card(
                 }
                 btn
             }),
-    );
-
-    let ldac_qualities = [
-        LdacQuality::High990,
-        LdacQuality::Standard660,
-        LdacQuality::Mobile330,
-        LdacQuality::Adaptive,
-    ];
-    let ldac_buttons = h_flex().flex_wrap().gap_2().children(
-        ldac_qualities.into_iter().map(|q| {
-            let label = match q {
-                LdacQuality::High990 => "990 kbps",
-                LdacQuality::Standard660 => "660 kbps",
-                LdacQuality::Mobile330 => "330 kbps",
-                LdacQuality::Adaptive => "Adaptive",
-            };
-            let mut btn = control_button(format!("ldac-q-{label}"))
-                .label(label)
-                .disabled(!online)
-                .on_click(move |_, _, cx| {
-                    AppState::apply(cx, |s| s.commit_ldac_quality(q));
-                });
-            if current_ldac_quality == q {
-                btn = btn.primary();
-            }
-            btn
-        }),
     );
 
     let sr_buttons = h_flex().flex_wrap().gap_2().children(
@@ -743,17 +794,34 @@ fn render_codec_card(
             div()
                 .text_caption()
                 .text_color(pal.text_muted)
-                .child("Select A2DP Bluetooth audio codec (LDAC, aptX HD/Adaptive/LL, AAC, SBC XQ) and sample rate."),
+                .child(format!(
+                    "Active codec: {} — select A2DP codec, bitrate quality, and sample rate.",
+                    effective_codec.label()
+                )),
         )
         .child(codec_buttons);
 
-    if matches!(current_codec, A2dpCodec::Auto | A2dpCodec::Ldac) {
-        body = body.child(
-            v_flex()
-                .gap_1()
-                .child(div().text_caption().text_color(pal.text_muted).child("LDAC Bitrate"))
-                .child(ldac_buttons),
+    if let Some(q_label) = codec_quality_label(effective_codec, shown_step) {
+        let mut q_section = v_flex().gap_1().child(
+            h_flex()
+                .justify_between()
+                .items_center()
+                .child(
+                    div()
+                        .text_caption()
+                        .text_color(pal.text_muted)
+                        .child(format!("{} Bitrate / Quality", effective_codec.short_name())),
+                )
+                .child(div().text_caption().child(q_label)),
         );
+        if let Some(slider) = quality_slider {
+            q_section = q_section.child(
+                Slider::new(slider.slider.slider())
+                    .horizontal()
+                    .disabled(!online),
+            );
+        }
+        body = body.child(q_section);
     }
 
     body = body.child(
