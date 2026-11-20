@@ -154,6 +154,15 @@ Download the macOS build from the [latest release](https://github.com/JoJoStax/O
 
 Download the Windows build from the [latest release](https://github.com/JoJoStax/OpenHID-BT/releases/latest) or build from source (`cargo run -p openhid-desktop`). Keep the GUI executable alongside `openhid-agent.exe`, which owns all device I/O. If you hit any issues, please [report them](https://github.com/JoJoStax/OpenHID-BT/issues).
 
+#### Experimental Windows Bluetooth HD Audio Driver (`bt-exp`)
+
+> **Experimental:** Currently in active testing on the [`bt-exp`](https://github.com/JoJoStax/OpenHID-BT/tree/bt-exp) branch.
+
+Stock Windows `BthA2dp.sys` does not expose LDAC or aptX HD/Adaptive. OpenHID/BT includes an experimental Windows A2DP codec driver manager (`openhid-bt-audio` + `packaging/windows/bth-a2dp-driver/`) designed to bring Linux/Android-grade Bluetooth audio codecs (**LDAC 990/660/330 kbps**, **aptX HD**, **aptX Adaptive**, **aptX LL**, **aptX**, **AAC**, and **SBC XQ**) alongside in-app **ANC**, **Game Mode**, **On-Board EQ**, and **Bitrate/Quality** controls:
+
+- **On Windows:** Offers a first-launch setup prompt and **Settings → Bluetooth Audio** controls to install, update, or restore the default Windows `BthA2dp.sys` driver.
+- **On Linux:** Hidden automatically (Linux BlueZ + PipeWire already provide these codecs natively).
+
 To build from source on any platform, see [DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ## Usage (CLI)
@@ -164,6 +173,7 @@ The `openhid` CLI provides device inventory, diagnostics, and Bluetooth GATT deb
 openhid list                       # List HID++, standalone, and Bluetooth devices
 openhid qcy list                   # List QCY Bluetooth headsets
 openhid razer list                 # List Razer Bluetooth headsets
+openhid razer mouse list           # List Razer USB / 2.4GHz HyperSpeed mice
 openhid bt list --audio-only       # Inspect all BlueZ audio/vendor devices
 openhid bt gatt --read             # Dump & read a headset's GATT services/characteristics
 openhid bt watch                   # Stream live GATT notifications as hex + ASCII
@@ -186,6 +196,10 @@ See [DEVELOPMENT.md](docs/DEVELOPMENT.md), including [macOS input-hook safety](d
 - **[OpenLogi](https://github.com/AprilNEA/OpenLogi)** by [@AprilNEA](https://github.com/AprilNEA) — the foundational upstream project that makes this work possible
 - **Windows, cameras, and i18n** by [@davidbudnick](https://github.com/davidbudnick) — keyboard RGB, Windows support, Logitech webcam support
 - **Linux port** by [@cserby](https://github.com/cserby) — Linux support
+- **[AOSP `libldac`](https://android.googlesource.com/platform/external/libldac)** — open-source Sony LDAC encoder & quality specification (Apache-2.0)
+- **[`libfreeaptx`](https://github.com/iamthehorker/libfreeaptx)** — open-source aptX & aptX HD codec implementation
+- **[BlueZ](https://www.bluez.org/) & [PipeWire](https://pipewire.org/)** — Linux Bluetooth A2DP/AVDTP & SBC XQ reference architecture
+- **[OpenRazer](https://openrazer.github.io/)** — Razer 90-byte USB HID feature-report protocol & mouse PID definitions
 - [Solaar](https://github.com/pwr-Solaar/Solaar) by [@pwr](https://github.com/pwr) — open-source HID++ implementation
 - [Mouser](https://github.com/TomBadash/Mouser) by [@TomBadash](https://github.com/TomBadash) — a local, account-free Options+ replacement
 
