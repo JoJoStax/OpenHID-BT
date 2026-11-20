@@ -103,6 +103,14 @@ impl Render for AudioPanel {
 
             panel = panel
                 .child(render_anc_card(audio_state.anc_mode, online, pal))
+                .child(render_codec_card(
+                    audio_state.a2dp_codec,
+                    audio_state.ldac_quality,
+                    audio_state.sample_rate,
+                    online,
+                    pal,
+                ))
+                .child(render_eq_card(audio_state.eq_preset, online, pal))
                 .child(render_performance_card(
                     audio_state.game_mode,
                     audio_state.multipoint,
@@ -646,3 +654,141 @@ fn render_razer_standby_card(
             ))),
     )
 }
+
+fn render_codec_card(
+    current_codec: openhid_bt_audio::A2dpCodec,
+    current_ldac_quality: openhid_bt_audio::LdacQuality,
+    current_sample_rate: openhid_bt_audio::SampleRate,
+    online: bool,
+    pal: Palette,
+) -> impl IntoElement {
+    use openhid_bt_audio::{A2dpCodec, LdacQuality, SampleRate};
+
+    let codec_buttons = h_flex().flex_wrap().gap_2().children(
+        A2dpCodec::ALL.iter().copied().map(|codec| {
+            let mut btn = control_button(format!("a2dp-codec-{}", codec.short_name()))
+                .label(codec.short_name())
+                .disabled(!online)
+                .on_click(move |_, _, cx| {
+                    AppState::apply(cx, |s| s.commit_audio_codec(codec));
+                });
+            if current_codec == codec {
+                btn = btn.primary();
+            }
+            btn
+        }),
+    );
+
+    let ldac_qualities = [
+        LdacQuality::High990,
+        LdacQuality::Standard660,
+        LdacQuality::Mobile330,
+        LdacQuality::Adaptive,
+    ];
+    let ldac_buttons = h_flex().flex_wrap().gap_2().children(
+        ldac_qualities.into_iter().map(|q| {
+            let label = match q {
+                LdacQuality::High990 => "990 kbps",
+                LdacQuality::Standard660 => "660 kbps",
+                LdacQuality::Mobile330 => "330 kbps",
+                LdacQuality::Adaptive => "Adaptive",
+            };
+            let mut btn = control_button(format!("ldac-q-{label}"))
+                .label(label)
+                .disabled(!online)
+                .on_click(move |_, _, cx| {
+                    AppState::apply(cx, |s| s.commit_ldac_quality(q));
+                });
+            if current_ldac_quality == q {
+                btn = btn.primary();
+            }
+            btn
+        }),
+    );
+
+    let sr_buttons = h_flex().flex_wrap().gap_2().children(
+        SampleRate::ALL.iter().copied().map(|sr| {
+            let mut btn = control_button(format!("a2dp-sr-{}", sr.label()))
+                .label(sr.label())
+                .disabled(!online)
+                .on_click(move |_, _, cx| {
+                    AppState::apply(cx, |s| s.commit_sample_rate(sr));
+                });
+            if current_sample_rate == sr {
+                btn = btn.primary();
+            }
+            btn
+        }),
+    );
+
+    let mut body = v_flex()
+        .gap_3()
+        .child(
+            div()
+                .text_caption()
+                .text_color(pal.text_muted)
+                .child("Select A2DP Bluetooth audio codec (LDAC, aptX HD/Adaptive/LL, AAC, SBC XQ) and sample rate."),
+        )
+        .child(codec_buttons);
+
+    if matches!(current_codec, A2dpCodec::Auto | A2dpCodec::Ldac) {
+        body = body.child(
+            v_flex()
+                .gap_1()
+                .child(div().text_caption().text_color(pal.text_muted).child("LDAC Bitrate"))
+                .child(ldac_buttons),
+        );
+    }
+
+    body = body.child(
+        v_flex()
+            .gap_1()
+            .child(div().text_caption().text_color(pal.text_muted).child("Sample Rate"))
+            .child(sr_buttons),
+    );
+
+    PanelCard::new(
+        "Bluetooth Codec & Quality",
+        Icon::empty().path("action-icons/volume-2.svg"),
+        body,
+    )
+}
+
+fn render_eq_card(current_preset: u8, online: bool, pal: Palette) -> impl IntoElement {
+    let presets = [
+        (0u8, "Default"),
+        (1, "Pop"),
+        (2, "Bass"),
+        (3, "Rock"),
+        (4, "Soft"),
+        (5, "Classic"),
+    ];
+
+    PanelCard::new(
+        "On-Board Equalizer",
+        Icon::empty().path("action-icons/gauge.svg"),
+        v_flex()
+            .gap_3()
+            .child(
+                div()
+                    .text_caption()
+                    .text_color(pal.text_muted)
+                    .child("Switch on-board DSP equalizer presets stored on the headset."),
+            )
+            .child(h_flex().flex_wrap().gap_2().children(presets.into_iter().map(
+                |(idx, label)| {
+                    let mut btn = control_button(format!("eq-preset-{idx}"))
+                        .label(label)
+                        .disabled(!online)
+                        .on_click(move |_, _, cx| {
+                            AppState::apply(cx, |s| s.commit_eq_preset(idx));
+                        });
+                    if current_preset == idx {
+                        btn = btn.primary();
+                    }
+                    btn
+                },
+            ))),
+    )
+}
+

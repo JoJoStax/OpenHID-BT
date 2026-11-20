@@ -46,6 +46,10 @@ pub(crate) struct AudioDeviceState {
     pub(crate) multipoint: bool,
     pub(crate) prompt_volume: u8,
     pub(crate) auto_power_off_minutes: u16,
+    pub(crate) a2dp_codec: openhid_bt_audio::A2dpCodec,
+    pub(crate) ldac_quality: openhid_bt_audio::LdacQuality,
+    pub(crate) sample_rate: openhid_bt_audio::SampleRate,
+    pub(crate) eq_preset: u8,
     pub(crate) razer_led_mode: openhid_razer::protocol::commands::RazerLedMode,
     pub(crate) razer_standby: openhid_razer::protocol::commands::AutoStandby,
 }
@@ -59,6 +63,10 @@ impl Default for AudioDeviceState {
             multipoint: false,
             prompt_volume: 8,
             auto_power_off_minutes: 0,
+            a2dp_codec: openhid_bt_audio::A2dpCodec::Auto,
+            ldac_quality: openhid_bt_audio::LdacQuality::High990,
+            sample_rate: openhid_bt_audio::SampleRate::Hz48000,
+            eq_preset: 0,
             razer_led_mode: openhid_razer::protocol::commands::RazerLedMode::Spectrum,
             razer_standby: openhid_razer::protocol::commands::AutoStandby::Minutes15,
         }

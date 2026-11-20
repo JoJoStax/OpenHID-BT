@@ -22,6 +22,7 @@ members = [
     "crates/openlogi-ui",
     "crates/openlogi-overlay",
     "crates/openlogi-hook",
+    "crates/openhid-bt-audio",
     "crates/openhid-qcy",
     "crates/openhid-razer",
     "xtask",

@@ -1,0 +1,16 @@
+[package]
+name = "openhid-bt-audio"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Cross-platform Bluetooth A2DP codec engine (LDAC, aptX, AAC, SBC) and Windows A2DP driver manager for OpenHID/BT"
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true

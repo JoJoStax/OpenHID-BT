@@ -52,6 +52,7 @@ use crate::windows::{self, AuxWindow};
 mod about;
 mod appearance;
 mod assets;
+mod bluetooth;
 // Event-tap enumeration is a macOS (`CGEventTap`) concept; the Diagnostics page
 // that surfaces it is macOS-only.
 #[cfg(target_os = "macos")]
@@ -76,6 +77,7 @@ pub enum SettingsPage {
     #[cfg(target_os = "linux")]
     Permissions,
     About,
+    BluetoothAudio,
 }
 
 impl SettingsPage {
@@ -93,6 +95,13 @@ impl SettingsPage {
                     5
                 } else {
                     4
+                }
+            }
+            Self::BluetoothAudio => {
+                if cfg!(any(target_os = "macos", target_os = "linux")) {
+                    6
+                } else {
+                    5
                 }
             }
         }
@@ -487,7 +496,8 @@ impl Render for SettingsView {
                 self.asset_source_select.clone(),
                 self.asset_cache_desc.clone(),
             ))
-            .page(about::about_page(view, self.copied));
+            .page(about::about_page(view.clone(), self.copied))
+            .page(bluetooth::bluetooth_page(view));
         // Surfaces competing macOS event taps (a pointer-lag cause) and, in debug
         // builds, the full tap list and a live event monitor. Appended after
         // About so [`SettingsPage::index`] stays platform-independent.

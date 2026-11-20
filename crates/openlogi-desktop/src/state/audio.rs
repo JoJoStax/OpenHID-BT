@@ -178,6 +178,72 @@ impl AppState {
         self.for_current_device(StateEvent::AudioChanged)
     }
 
+    /// Set preferred Bluetooth A2DP codec (LDAC, aptX HD, aptX Adaptive, AAC, SBC XQ, etc.).
+    pub fn commit_audio_codec(&mut self, codec: openhid_bt_audio::A2dpCodec) -> StateEvents {
+        let Some((key, address)) = self.current_audio_target() else {
+            return StateEvents::none();
+        };
+        let audio = &mut self.devices.sessions.entry(key).or_default().audio;
+        audio.a2dp_codec = codec;
+        let ldac_enabled = matches!(codec, openhid_bt_audio::A2dpCodec::Ldac);
+        audio.ldac = ldac_enabled;
+
+        dispatch_qcy_action(address, move |client| async move {
+            let _ = client.set_ldac(ldac_enabled).await;
+        });
+
+        self.for_current_device(StateEvent::AudioChanged)
+    }
+
+    /// Set LDAC bitrate / quality preset (990 / 660 / 330 kbps / ABR).
+    pub fn commit_ldac_quality(&mut self, quality: openhid_bt_audio::LdacQuality) -> StateEvents {
+        let Some((key, _)) = self.current_audio_target() else {
+            return StateEvents::none();
+        };
+        self.devices
+            .sessions
+            .entry(key)
+            .or_default()
+            .audio
+            .ldac_quality = quality;
+
+        self.for_current_device(StateEvent::AudioChanged)
+    }
+
+    /// Set preferred A2DP sample rate (44.1 / 48 / 88.2 / 96 kHz).
+    pub fn commit_sample_rate(&mut self, rate: openhid_bt_audio::SampleRate) -> StateEvents {
+        let Some((key, _)) = self.current_audio_target() else {
+            return StateEvents::none();
+        };
+        self.devices
+            .sessions
+            .entry(key)
+            .or_default()
+            .audio
+            .sample_rate = rate;
+
+        self.for_current_device(StateEvent::AudioChanged)
+    }
+
+    /// Set on-board equalizer preset index and dispatch to the headset.
+    pub fn commit_eq_preset(&mut self, preset: u8) -> StateEvents {
+        let Some((key, address)) = self.current_audio_target() else {
+            return StateEvents::none();
+        };
+        self.devices
+            .sessions
+            .entry(key)
+            .or_default()
+            .audio
+            .eq_preset = preset;
+
+        dispatch_qcy_action(address, move |client| async move {
+            let _ = client.set_eq_preset(preset).await;
+        });
+
+        self.for_current_device(StateEvent::AudioChanged)
+    }
+
     fn current_audio_target(&self) -> Option<(DeviceKey, Option<String>)> {
         let record = self.current_record()?;
         let key = record.device_key();

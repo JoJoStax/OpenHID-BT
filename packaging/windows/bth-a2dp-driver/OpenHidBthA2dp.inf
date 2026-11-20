@@ -1,0 +1,43 @@
+; OpenHID/BT Windows Bluetooth A2DP Codec Driver (INF)
+; Replaces/extends stock BthA2dp for A2DP Audio Sinks (UUID 0x110B) to enable
+; LDAC, aptX HD, aptX Adaptive, aptX LL, aptX, AAC, and SBC XQ via open-source
+; AOSP libldac + libfreeaptx encoders.
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = MEDIA
+ClassGuid   = {4d36e96c-e325-11ce-bfc1-08002be10318}
+Provider    = %ManufacturerName%
+DriverVer   = 11/20/2026,0.9.0.0
+CatalogFile = OpenHidBthA2dp.cat
+PnpLockdown = 1
+
+[Manufacturer]
+%ManufacturerName% = OpenHidBthA2dp,NTamd64,NTarm64
+
+[OpenHidBthA2dp.NTamd64]
+%DeviceDesc% = OpenHidBthA2dp_Install, BTHENUM\{0000110b-0000-1000-8000-00805f9b34fb}
+
+[OpenHidBthA2dp.NTarm64]
+%DeviceDesc% = OpenHidBthA2dp_Install, BTHENUM\{0000110b-0000-1000-8000-00805f9b34fb}
+
+[OpenHidBthA2dp_Install]
+Include = btha2dp.inf, wdmaudio.inf
+Needs   = BthA2dp.NT, WDMAUDIO.Registration
+CopyFiles = OpenHidCodecFiles
+
+[OpenHidBthA2dp_Install.Services]
+Include = btha2dp.inf
+Needs   = BthA2dp.NT.Services
+
+[OpenHidCodecFiles]
+; Open-source codec encoders (staged alongside the INF when built with WDK/MSYS2)
+; ldacBT_enc.dll
+; freeaptx.dll
+
+[DestinationDirs]
+OpenHidCodecFiles = 13
+
+[Strings]
+ManufacturerName = "OpenHID/BT"
+DeviceDesc       = "OpenHID/BT Bluetooth A2DP HD Audio Sink (LDAC / aptX)"

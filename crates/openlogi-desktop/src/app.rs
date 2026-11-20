@@ -249,6 +249,7 @@ pub struct AppView {
     /// A successful save must redraw that screen even though the error is gone.
     config_issue_visible: bool,
     accessibility_dismissed: bool,
+    bt_driver_prompt_dismissed: bool,
     /// Which section of the device-detail screen is showing.
     active_tab: DetailTab,
 }
@@ -350,6 +351,7 @@ impl AppView {
             removal_obs,
             config_issue_visible: false,
             accessibility_dismissed: false,
+            bt_driver_prompt_dismissed: false,
             active_tab: DetailTab::Buttons,
         }
     }
@@ -774,12 +776,85 @@ impl AppView {
         } else {
             status::Attention::for_status(&status, has_key_bindings)
         };
-        root.child(header_el)
-            .child(content_el)
-            .when_some(attention, |this, attention| {
-                this.child(status::attention_footer(attention, cx))
-            })
-            .into_any_element()
+        let show_bt_driver_banner = !self.bt_driver_prompt_dismissed
+            && openhid_bt_audio::is_driver_setup_applicable()
+            && openhid_bt_audio::check_driver_status().status
+                == openhid_bt_audio::WindowsDriverStatus::NotInstalled;
+
+        let pal = theme::palette(cx);
+        root.when(show_bt_driver_banner, |this| {
+            use gpui_kit::component::{Sizable as _, h_flex};
+            this.child(
+                h_flex()
+                    .w_full()
+                    .px_4()
+                    .py_2()
+                    .bg(pal.panel)
+                    .border_b_1()
+                    .border_color(pal.border)
+                    .justify_between()
+                    .items_center()
+                    .gap_3()
+                    .child(
+                        v_flex()
+                            .child(
+                                div()
+                                    .text_body()
+                                    .font_weight(gpui::FontWeight::SEMIBOLD)
+                                    .child("Set up Windows Bluetooth HD Audio Driver (LDAC / aptX)"),
+                            )
+                            .child(
+                                div()
+                                    .text_caption()
+                                    .text_color(pal.text_muted)
+                                    .child("Install the OpenHID/BT A2DP driver for LDAC, aptX HD, aptX Adaptive, and SBC XQ on Windows."),
+                            ),
+                    )
+                    .child(
+                        h_flex()
+                            .gap_2()
+                            .items_center()
+                            .child(
+                                Button::new("bt-driver-setup-now")
+                                    .small()
+                                    .primary()
+                                    .label("Set Up Driver")
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        let _ = openhid_bt_audio::install_or_update_driver();
+                                        this.bt_driver_prompt_dismissed = true;
+                                        cx.notify();
+                                    })),
+                            )
+                            .child(
+                                Button::new("bt-driver-open-settings")
+                                    .small()
+                                    .label("Settings")
+                                    .on_click(|_, _, cx| {
+                                        crate::windows::settings::open_at(
+                                            crate::windows::settings::SettingsPage::BluetoothAudio,
+                                            cx,
+                                        );
+                                    }),
+                            )
+                            .child(
+                                Button::new("bt-driver-dismiss")
+                                    .small()
+                                    .ghost()
+                                    .label("Later")
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        this.bt_driver_prompt_dismissed = true;
+                                        cx.notify();
+                                    })),
+                            ),
+                    ),
+            )
+        })
+        .child(header_el)
+        .child(content_el)
+        .when_some(attention, |this, attention| {
+            this.child(status::attention_footer(attention, cx))
+        })
+        .into_any_element()
     }
 }
 
